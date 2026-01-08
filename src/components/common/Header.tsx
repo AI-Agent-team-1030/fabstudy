@@ -25,6 +25,7 @@ export function Header({ variant = "student" }: HeaderProps) {
       return [
         { href: "/teacher/students", label: "生徒一覧" },
         { href: "/teacher/messages", label: "メッセージ" },
+        { href: "/teacher/notes", label: "メモ" },
       ];
     }
     if (variant === "kids") {
@@ -40,7 +41,6 @@ export function Header({ variant = "student" }: HeaderProps) {
       { href: "/study", label: "勉強ログ" },
       { href: "/tasks", label: "タスク" },
       { href: "/exams", label: "テスト記録" },
-      { href: "/notes", label: "メモ" },
       { href: "/messages", label: "メッセージ" },
     ];
   };

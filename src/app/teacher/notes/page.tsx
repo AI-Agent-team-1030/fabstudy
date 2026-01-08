@@ -18,7 +18,6 @@ import {
   where,
   getDocs,
   Timestamp,
-  orderBy,
 } from "firebase/firestore";
 import { toast } from "sonner";
 
@@ -30,7 +29,7 @@ interface Note {
   createdAt: Timestamp;
 }
 
-export default function NotesPage() {
+export default function TeacherNotesPage() {
   const { user, loading } = useAuth();
   const router = useRouter();
   const [notes, setNotes] = useState<Note[]>([]);
@@ -41,13 +40,13 @@ export default function NotesPage() {
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
-    if (!loading && !user) {
-      router.push("/login");
+    if (!loading && (!user || user.role !== "teacher")) {
+      router.push("/teacher/login");
     }
   }, [user, loading, router]);
 
   useEffect(() => {
-    if (user) {
+    if (user && user.role === "teacher") {
       loadNotes();
     }
   }, [user]);
@@ -55,7 +54,7 @@ export default function NotesPage() {
   const loadNotes = async () => {
     if (!user) return;
     try {
-      const notesRef = collection(db, "notes");
+      const notesRef = collection(db, "teacherNotes");
       const q = query(
         notesRef,
         where("userId", "==", user.id)
@@ -84,7 +83,7 @@ export default function NotesPage() {
   const createNewNote = async () => {
     if (!user) return;
     try {
-      const notesRef = collection(db, "notes");
+      const notesRef = collection(db, "teacherNotes");
       const newNote = await addDoc(notesRef, {
         userId: user.id,
         title: "新規メモ",
@@ -118,7 +117,7 @@ export default function NotesPage() {
       const lines = editContent.split("\n");
       const title = lines[0] || "無題";
 
-      await updateDoc(doc(db, "notes", selectedNote.id), {
+      await updateDoc(doc(db, "teacherNotes", selectedNote.id), {
         title: title.slice(0, 50),
         content: editContent,
         updatedAt: Timestamp.now(),
@@ -143,7 +142,7 @@ export default function NotesPage() {
     if (!confirm("このメモを削除しますか？")) return;
 
     try {
-      await deleteDoc(doc(db, "notes", noteId));
+      await deleteDoc(doc(db, "teacherNotes", noteId));
       setNotes(notes.filter(n => n.id !== noteId));
       if (selectedNote?.id === noteId) {
         setSelectedNote(null);
@@ -198,7 +197,7 @@ export default function NotesPage() {
   if (selectedNote) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <Header variant="student" />
+        <Header variant="teacher" />
         <main className="max-w-4xl mx-auto px-4 py-6">
           <div className="flex items-center justify-between mb-4">
             <Button
@@ -272,7 +271,7 @@ export default function NotesPage() {
   // メモ一覧画面
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header variant="student" />
+      <Header variant="teacher" />
       <main className="max-w-4xl mx-auto px-4 py-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-2xl font-bold text-gray-800">メモ</h2>

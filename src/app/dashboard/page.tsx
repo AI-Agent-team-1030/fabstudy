@@ -214,7 +214,7 @@ export default function DashboardPage() {
         {/* クイックアクション */}
         <div className="mt-8">
           <h3 className="text-lg font-semibold text-gray-800 mb-4">クイックアクション</h3>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <Card className="cursor-pointer hover:bg-blue-50 transition-colors" onClick={() => router.push("/study")}>
               <CardContent className="p-4 text-center">
                 <div className="w-10 h-10 mx-auto mb-2 bg-blue-100 rounded-full flex items-center justify-center">
@@ -237,14 +237,6 @@ export default function DashboardPage() {
                   <span className="text-yellow-600 font-bold">試</span>
                 </div>
                 <p className="font-medium">テストを記録</p>
-              </CardContent>
-            </Card>
-            <Card className="cursor-pointer hover:bg-orange-50 transition-colors" onClick={() => router.push("/notes")}>
-              <CardContent className="p-4 text-center">
-                <div className="w-10 h-10 mx-auto mb-2 bg-orange-100 rounded-full flex items-center justify-center">
-                  <span className="text-orange-600 font-bold">メ</span>
-                </div>
-                <p className="font-medium">メモ</p>
               </CardContent>
             </Card>
             <Card className="cursor-pointer hover:bg-purple-50 transition-colors" onClick={() => router.push("/messages")}>
