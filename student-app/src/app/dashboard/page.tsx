@@ -192,6 +192,27 @@ export default function DashboardPage() {
     return days;
   };
 
+  // 今月の勉強時間を計算
+  const getMonthlyTotal = () => {
+    const today = new Date();
+    const thisMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+
+    let monthTotal = 0;
+    logs.forEach((log) => {
+      const logDate = log.date?.toDate?.() || new Date(log.date);
+      if (logDate >= thisMonthStart) {
+        monthTotal += log.duration || 0;
+      }
+    });
+
+    return monthTotal;
+  };
+
+  // 総計を計算
+  const getAllTimeTotal = () => {
+    return logs.reduce((sum, log) => sum + (log.duration || 0), 0);
+  };
+
   // 今日の科目別合計（円グラフ用）
   const getTodaySubjectTotals = () => {
     const totals: Record<string, number> = {};
@@ -279,65 +300,123 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
+        {/* Goal一覧（2番目に配置） */}
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="text-lg">目標</CardTitle>
+            <CardDescription>進捗状況</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {loadingGoals ? (
+              <p className="text-gray-500">読み込み中...</p>
+            ) : goals.length === 0 ? (
+              <p className="text-gray-500">まだ目標がありません</p>
+            ) : (
+              <ul className="space-y-3">
+                {goals.map((goal) => (
+                  <li key={goal.id} className="flex items-center gap-3">
+                    <div className="flex-1">
+                      <p className="font-medium">{goal.title}</p>
+                      <div className="h-2 bg-gray-200 rounded-full overflow-hidden mt-1">
+                        <div
+                          className={`h-full ${goal.status === "completed" ? "bg-green-500" : "bg-blue-500"}`}
+                          style={{ width: `${goal.progress}%` }}
+                        />
+                      </div>
+                    </div>
+                    <span className="text-sm font-medium text-blue-600">{goal.progress}%</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+
         {/* 週間棒グラフ */}
         <Card className="mb-6">
           <CardHeader className="pb-2">
-            <CardTitle className="text-lg">今週の学習時間</CardTitle>
+            <CardTitle className="text-lg">学習時間（カテゴリ）</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-0">
             {loadingLogs ? (
-              <p className="text-gray-500">読み込み中...</p>
+              <div className="p-4">
+                <p className="text-gray-500">読み込み中...</p>
+              </div>
             ) : (
-              <div className="p-2">
-                <div className="flex gap-2 h-48">
-                  {/* Y軸ラベル */}
-                  <div className="flex flex-col justify-between text-xs text-gray-500 pr-2 pb-6">
-                    <span>{Math.ceil(maxDailyMinutes / 60)}h</span>
-                    <span>{Math.ceil(maxDailyMinutes / 120)}h</span>
-                    <span>0</span>
+              <>
+                {/* 今日・今月・総計 */}
+                <div className="grid grid-cols-3 border-y bg-gray-100">
+                  <div className="text-center py-2 border-r">
+                    <div className="text-sm text-gray-500">今日</div>
                   </div>
-
-                  {/* バー */}
-                  <div className="flex-1 flex items-end gap-2">
-                    {weeklyData.map((day, index) => {
-                      const dayTotal = Object.values(day.subjects).reduce((sum, v) => sum + v, 0);
-                      const maxHeight = 160;
-                      const barHeight = maxDailyMinutes > 0 ? (dayTotal / maxDailyMinutes) * maxHeight : 0;
-
-                      return (
-                        <div key={index} className="flex-1 flex flex-col items-center">
-                          <div className="w-full flex flex-col justify-end" style={{ height: `${maxHeight}px` }}>
-                            <div
-                              className="w-full flex flex-col-reverse rounded-t overflow-hidden"
-                              style={{ height: `${barHeight}px` }}
-                            >
-                              {Object.entries(day.subjects).map(([subj, minutes]) => {
-                                const segmentHeight = dayTotal > 0 ? (minutes / dayTotal) * barHeight : 0;
-                                return (
-                                  <div
-                                    key={subj}
-                                    style={{
-                                      height: `${segmentHeight}px`,
-                                      backgroundColor: getSubjectColor(subj),
-                                    }}
-                                  />
-                                );
-                              })}
-                            </div>
-                          </div>
-                          <span className="text-xs text-gray-500 mt-2">{day.label}</span>
-                        </div>
-                      );
-                    })}
+                  <div className="text-center py-2 border-r">
+                    <div className="text-sm text-gray-500">今月</div>
+                  </div>
+                  <div className="text-center py-2">
+                    <div className="text-sm text-gray-500">総計</div>
                   </div>
                 </div>
-              </div>
+                <div className="grid grid-cols-3 border-b">
+                  <div className="text-center py-3 border-r">
+                    <span className="text-xl font-bold">{formatMinutesToDisplay(todayTotal)}</span>
+                  </div>
+                  <div className="text-center py-3 border-r">
+                    <span className="text-xl font-bold">{formatMinutesToDisplay(getMonthlyTotal())}</span>
+                  </div>
+                  <div className="text-center py-3">
+                    <span className="text-xl font-bold">{formatMinutesToDisplay(getAllTimeTotal())}</span>
+                  </div>
+                </div>
+
+                {/* 棒グラフ */}
+                <div className="p-4">
+                  <div className="flex gap-2 h-48">
+                    <div className="flex flex-col justify-between text-xs text-gray-500 pr-2 pb-6">
+                      <span>{Math.ceil(maxDailyMinutes / 60)}時間</span>
+                      <span>{Math.ceil(maxDailyMinutes / 120)}時間</span>
+                      <span>0</span>
+                    </div>
+                    <div className="flex-1 flex items-end gap-2">
+                      {weeklyData.map((day, index) => {
+                        const dayTotal = Object.values(day.subjects).reduce((sum, v) => sum + v, 0);
+                        const maxHeight = 160;
+                        const barHeight = maxDailyMinutes > 0 ? (dayTotal / maxDailyMinutes) * maxHeight : 0;
+
+                        return (
+                          <div key={index} className="flex-1 flex flex-col items-center">
+                            <div className="w-full flex flex-col justify-end" style={{ height: `${maxHeight}px` }}>
+                              <div
+                                className="w-full flex flex-col-reverse rounded-t overflow-hidden"
+                                style={{ height: `${barHeight}px` }}
+                              >
+                                {Object.entries(day.subjects).map(([subj, minutes]) => {
+                                  const segmentHeight = dayTotal > 0 ? (minutes / dayTotal) * barHeight : 0;
+                                  return (
+                                    <div
+                                      key={subj}
+                                      style={{
+                                        height: `${segmentHeight}px`,
+                                        backgroundColor: getSubjectColor(subj),
+                                      }}
+                                    />
+                                  );
+                                })}
+                              </div>
+                            </div>
+                            <span className="text-xs text-gray-500 mt-2">{day.label}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              </>
             )}
           </CardContent>
         </Card>
 
         {/* 今日の時間配分（円グラフ） */}
-        <Card className="mb-6">
+        <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-lg">今日の時間配分</CardTitle>
           </CardHeader>
@@ -390,38 +469,6 @@ export default function DashboardPage() {
               </div>
             ) : (
               <p className="text-gray-500 text-center py-8">今日はまだ記録がありません</p>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Goal一覧 */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">目標</CardTitle>
-            <CardDescription>進捗状況</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {loadingGoals ? (
-              <p className="text-gray-500">読み込み中...</p>
-            ) : goals.length === 0 ? (
-              <p className="text-gray-500">まだ目標がありません</p>
-            ) : (
-              <ul className="space-y-3">
-                {goals.map((goal) => (
-                  <li key={goal.id} className="flex items-center gap-3">
-                    <div className="flex-1">
-                      <p className="font-medium">{goal.title}</p>
-                      <div className="h-2 bg-gray-200 rounded-full overflow-hidden mt-1">
-                        <div
-                          className={`h-full ${goal.status === "completed" ? "bg-green-500" : "bg-blue-500"}`}
-                          style={{ width: `${goal.progress}%` }}
-                        />
-                      </div>
-                    </div>
-                    <span className="text-sm font-medium text-blue-600">{goal.progress}%</span>
-                  </li>
-                ))}
-              </ul>
             )}
           </CardContent>
         </Card>

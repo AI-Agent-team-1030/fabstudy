@@ -4,10 +4,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const navItems = [
-  { href: "/dashboard", label: "積み上げ表", icon: "📊" },
-  { href: "/study", label: "学習記録", icon: "📝" },
-  { href: "/tasks", label: "目標", icon: "🎯" },
-  { href: "/messages", label: "メッセージ", icon: "💬" },
+  { href: "/dashboard", label: "積み上げ表" },
+  { href: "/study", label: "学習記録" },
+  { href: "/tasks", label: "目標" },
+  { href: "/messages", label: "メッセージ" },
 ];
 
 export function BottomNav() {
@@ -22,14 +22,13 @@ export function BottomNav() {
             <Link
               key={item.href}
               href={item.href}
-              className={`flex flex-col items-center justify-center w-full h-full transition-colors ${
+              className={`flex items-center justify-center w-full h-full transition-colors ${
                 isActive
-                  ? "text-blue-600"
+                  ? "text-blue-600 font-bold"
                   : "text-gray-500 hover:text-gray-700"
               }`}
             >
-              <span className="text-2xl mb-1">{item.icon}</span>
-              <span className={`text-xs ${isActive ? "font-bold" : ""}`}>
+              <span className="text-sm">
                 {item.label}
               </span>
             </Link>
