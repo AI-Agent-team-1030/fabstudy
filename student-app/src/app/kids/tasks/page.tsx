@@ -163,13 +163,13 @@ export default function KidsTasksPage() {
         createdAt: Timestamp.now(),
       });
 
-      toast.success("ついかしました！");
+      toast.success("追加しました！");
       setAddingTo(null);
       setNewTaskTitle("");
       loadTasks();
     } catch (error) {
       console.error("Failed to add task:", error);
-      toast.error("ついかできませんでした");
+      toast.error("追加できませんでした");
     }
   };
 
@@ -370,7 +370,7 @@ export default function KidsTasksPage() {
               className="w-full border-dashed border-2 py-4 text-lg"
               onClick={() => setAddingTo({ parentId: task.id, level: childLevel })}
             >
-              + {LEVEL_CONFIG[childLevel].label}をついか
+              + {LEVEL_CONFIG[childLevel].label}を<ruby>追加<rt>ついか</rt></ruby>
             </Button>
           </div>
         )}
@@ -459,7 +459,7 @@ export default function KidsTasksPage() {
           <DialogContent>
             <DialogHeader>
               <DialogTitle className="text-xl">
-                {addingTo && LEVEL_CONFIG[addingTo.level].label}をついか
+                {addingTo && LEVEL_CONFIG[addingTo.level].label}を<ruby>追加<rt>ついか</rt></ruby>
               </DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
@@ -485,7 +485,7 @@ export default function KidsTasksPage() {
                   onClick={handleAddTask}
                   disabled={!newTaskTitle}
                 >
-                  ついか
+                  <ruby>追加<rt>ついか</rt></ruby>
                 </Button>
               </div>
             </div>
