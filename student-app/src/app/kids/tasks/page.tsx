@@ -436,7 +436,7 @@ export default function KidsTasksPage() {
                 className="text-lg py-6 px-8"
                 onClick={() => setAddingTo({ parentId: null, level: "goal" })}
               >
-                + やりたいことをついか
+                + やりたいことを<ruby>追加<rt>ついか</rt></ruby>
               </Button>
             </CardContent>
           </Card>
@@ -449,7 +449,7 @@ export default function KidsTasksPage() {
               className="w-full border-dashed border-2 mt-4 py-6 text-lg"
               onClick={() => setAddingTo({ parentId: null, level: "goal" })}
             >
-              + やりたいことをついか
+              + やりたいことを<ruby>追加<rt>ついか</rt></ruby>
             </Button>
           </>
         )}

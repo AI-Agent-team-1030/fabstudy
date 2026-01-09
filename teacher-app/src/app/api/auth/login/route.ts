@@ -8,20 +8,33 @@ export async function POST(request: NextRequest) {
   try {
     const { name, password, role } = await request.json();
 
-    if (!name || !password) {
+    if (!password) {
       return NextResponse.json(
-        { error: "名前とパスワードを入力してください" },
+        { error: "パスワードを入力してください" },
         { status: 400 }
       );
     }
 
-    // ユーザーを検索
+    // ユーザーを検索（教師の場合はパスワードのみで検索）
     const usersRef = collection(db, "users");
-    const q = query(
-      usersRef,
-      where("name", "==", name),
-      where("role", "==", role || "student")
-    );
+    let q;
+    if (role === "teacher") {
+      // 教師はマスターパスワードのみでログイン
+      q = query(usersRef, where("role", "==", "teacher"));
+    } else {
+      // 生徒は名前とパスワードでログイン
+      if (!name) {
+        return NextResponse.json(
+          { error: "名前を入力してください" },
+          { status: 400 }
+        );
+      }
+      q = query(
+        usersRef,
+        where("name", "==", name),
+        where("role", "==", "student")
+      );
+    }
     const snapshot = await getDocs(q);
 
     if (snapshot.empty) {
