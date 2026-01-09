@@ -92,18 +92,12 @@ export default function LoginPage() {
               {loading ? "ログイン中..." : "ログイン"}
             </Button>
           </form>
-          <div className="mt-4 text-center space-y-2">
+          <div className="mt-4 text-center">
             <a
               href="/register"
-              className="block text-sm text-emerald-600 hover:underline font-medium"
+              className="text-sm text-emerald-600 hover:underline font-medium"
             >
               新規登録はこちら
-            </a>
-            <a
-              href="/teacher/login"
-              className="block text-sm text-blue-600 hover:underline"
-            >
-              先生用ログインはこちら
             </a>
           </div>
         </CardContent>
