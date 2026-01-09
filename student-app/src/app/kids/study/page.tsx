@@ -237,13 +237,10 @@ export default function KidsStudyPage() {
       <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50">
         <div className="flex justify-around items-center h-16 max-w-lg mx-auto">
           <Link href="/kids/dashboard" className={`flex items-center justify-center w-full h-full transition-colors ${pathname === "/kids/dashboard" ? "text-blue-600 font-bold" : "text-gray-500"}`}>
-            <span className="text-sm">ホーム</span>
-          </Link>
-          <Link href="/kids/study" className={`flex items-center justify-center w-full h-full transition-colors ${pathname === "/kids/study" ? "text-blue-600 font-bold" : "text-gray-500"}`}>
-            <span className="text-sm">学習記録</span>
+            <span className="text-sm">つみあげひょう</span>
           </Link>
           <Link href="/kids/wishlist" className={`flex items-center justify-center w-full h-full transition-colors ${pathname === "/kids/wishlist" ? "text-blue-600 font-bold" : "text-gray-500"}`}>
-            <span className="text-sm">目標</span>
+            <span className="text-sm">やりたいことリスト</span>
           </Link>
           <Link href="/kids/messages" className={`flex items-center justify-center w-full h-full transition-colors ${pathname === "/kids/messages" ? "text-blue-600 font-bold" : "text-gray-500"}`}>
             <span className="text-sm">メッセージ</span>

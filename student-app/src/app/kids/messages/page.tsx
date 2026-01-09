@@ -173,12 +173,16 @@ export default function KidsMessagesPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
-      {/* ヘッダー - 高校生版と同じスタイル */}
+      {/* ヘッダー */}
       <header className="bg-blue-700 text-white shadow-md">
         <div className="max-w-7xl mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
-              <h1 className="font-bold text-lg">学習進捗管理</h1>
+              <h1 className="font-bold text-lg">
+                <ruby>学習<rt>がくしゅう</rt></ruby>
+                <ruby>進捗<rt>しんちょく</rt></ruby>
+                <ruby>管理<rt>かんり</rt></ruby>
+              </h1>
               {user && (
                 <Badge variant="secondary" className="ml-2">
                   {user.name}
@@ -198,11 +202,11 @@ export default function KidsMessagesPage() {
 
       <main className="max-w-4xl mx-auto px-4 py-6">
         {loadingMessages ? (
-          <p className="text-center text-gray-500">読み込み中...</p>
+          <p className="text-center text-gray-500">よみこみちゅう...</p>
         ) : messages.length === 0 ? (
           <Card>
             <CardContent className="p-8 text-center">
-              <p className="text-gray-500">メッセージはまだありません</p>
+              <p className="text-gray-500">メッセージはまだないよ</p>
             </CardContent>
           </Card>
         ) : (
@@ -290,13 +294,10 @@ export default function KidsMessagesPage() {
       <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-40">
         <div className="flex justify-around items-center h-16 max-w-lg mx-auto">
           <Link href="/kids/dashboard" className={`flex items-center justify-center w-full h-full transition-colors ${pathname === "/kids/dashboard" ? "text-blue-600 font-bold" : "text-gray-500"}`}>
-            <span className="text-sm">ホーム</span>
-          </Link>
-          <Link href="/kids/study" className={`flex items-center justify-center w-full h-full transition-colors ${pathname === "/kids/study" ? "text-blue-600 font-bold" : "text-gray-500"}`}>
-            <span className="text-sm">学習記録</span>
+            <span className="text-sm">つみあげひょう</span>
           </Link>
           <Link href="/kids/wishlist" className={`flex items-center justify-center w-full h-full transition-colors ${pathname === "/kids/wishlist" ? "text-blue-600 font-bold" : "text-gray-500"}`}>
-            <span className="text-sm">目標</span>
+            <span className="text-sm">やりたいことリスト</span>
           </Link>
           <Link href="/kids/messages" className={`flex items-center justify-center w-full h-full transition-colors ${pathname === "/kids/messages" ? "text-blue-600 font-bold" : "text-gray-500"}`}>
             <span className="text-sm">メッセージ</span>

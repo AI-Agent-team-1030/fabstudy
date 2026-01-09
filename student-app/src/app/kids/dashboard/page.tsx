@@ -20,7 +20,6 @@ export default function KidsDashboardPage() {
   const [totalMinutes, setTotalMinutes] = useState(0);
   const [todayMinutes, setTodayMinutes] = useState(0);
   const [weeklyMinutes, setWeeklyMinutes] = useState(0);
-  const [totalRecords, setTotalRecords] = useState(0);
   const [loadingData, setLoadingData] = useState(true);
 
   const handleLogout = () => {
@@ -88,7 +87,6 @@ export default function KidsDashboardPage() {
       setTotalMinutes(total);
       setTodayMinutes(today);
       setWeeklyMinutes(weekly);
-      setTotalRecords(snapshot.docs.length);
 
       // ゲームデータを取得または作成
       const gameDataRef = doc(db, "userGameData", user.id);
@@ -151,15 +149,15 @@ export default function KidsDashboardPage() {
   const formatTime = (minutes: number) => {
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
-    if (hours === 0) return `${mins}分`;
-    if (mins === 0) return `${hours}時間`;
-    return `${hours}時間${mins}分`;
+    if (hours === 0) return `${mins}ふん`;
+    if (mins === 0) return `${hours}じかん`;
+    return `${hours}じかん${mins}ふん`;
   };
 
   if (loading || loadingData) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <p>読み込み中...</p>
+        <p>よみこみちゅう...</p>
       </div>
     );
   }
@@ -173,15 +171,21 @@ export default function KidsDashboardPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
-      {/* ヘッダー - 高校生版と同じスタイル */}
+      {/* ヘッダー */}
       <header className="bg-blue-700 text-white shadow-md">
         <div className="max-w-7xl mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
-              <h1 className="font-bold text-lg">学習進捗管理</h1>
-              <Badge variant="secondary" className="ml-2">
-                {user.name}
-              </Badge>
+              <h1 className="font-bold text-lg">
+                <ruby>学習<rt>がくしゅう</rt></ruby>
+                <ruby>進捗<rt>しんちょく</rt></ruby>
+                <ruby>管理<rt>かんり</rt></ruby>
+              </h1>
+              {user && (
+                <Badge variant="secondary" className="ml-2">
+                  {user.name}
+                </Badge>
+              )}
             </div>
             <Button
               variant="ghost"
@@ -202,7 +206,9 @@ export default function KidsDashboardPage() {
         {/* 今週の勉強時間 */}
         <Card className="mb-6">
           <CardHeader className="pb-2">
-            <CardTitle className="text-lg">今週の勉強時間</CardTitle>
+            <CardTitle className="text-lg">
+              <ruby>今週<rt>こんしゅう</rt></ruby>の<ruby>勉強<rt>べんきょう</rt></ruby><ruby>時間<rt>じかん</rt></ruby>
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-4xl font-bold text-blue-600 text-center py-4">
@@ -219,7 +225,7 @@ export default function KidsDashboardPage() {
           <CardContent>
             <div className="space-y-2">
               <div className="flex justify-between text-sm text-gray-600">
-                <span>経験値</span>
+                <span><ruby>経験値<rt>けいけんち</rt></ruby></span>
                 <span>{levelInfo.currentExp} / {levelInfo.nextLevelExp}</span>
               </div>
               <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
@@ -235,18 +241,24 @@ export default function KidsDashboardPage() {
         {/* 統計カード */}
         <Card className="mb-6">
           <CardHeader className="pb-2">
-            <CardTitle className="text-lg">学習時間</CardTitle>
+            <CardTitle className="text-lg">
+              <ruby>学習<rt>がくしゅう</rt></ruby><ruby>時間<rt>じかん</rt></ruby>
+            </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
             <div className="grid grid-cols-3 border-y bg-gray-100">
               <div className="text-center py-2 border-r">
-                <div className="text-sm text-gray-500">今日</div>
+                <div className="text-sm text-gray-500">きょう</div>
               </div>
               <div className="text-center py-2 border-r">
-                <div className="text-sm text-gray-500">連続記録</div>
+                <div className="text-sm text-gray-500">
+                  <ruby>連続<rt>れんぞく</rt></ruby><ruby>記録<rt>きろく</rt></ruby>
+                </div>
               </div>
               <div className="text-center py-2">
-                <div className="text-sm text-gray-500">総計</div>
+                <div className="text-sm text-gray-500">
+                  <ruby>合計<rt>ごうけい</rt></ruby>
+                </div>
               </div>
             </div>
             <div className="grid grid-cols-3">
@@ -254,7 +266,7 @@ export default function KidsDashboardPage() {
                 <span className="text-xl font-bold text-blue-600">{formatTime(todayMinutes)}</span>
               </div>
               <div className="text-center py-4 border-r">
-                <span className="text-xl font-bold text-orange-500">{gameData?.currentStreak || 0}日</span>
+                <span className="text-xl font-bold text-orange-500">{gameData?.currentStreak || 0}にち</span>
               </div>
               <div className="text-center py-4">
                 <span className="text-xl font-bold">{formatTime(totalMinutes)}</span>
@@ -269,6 +281,14 @@ export default function KidsDashboardPage() {
             <CardTitle className="text-lg">バッジ</CardTitle>
           </CardHeader>
           <CardContent>
+            {/* バッジの説明 */}
+            <div className="bg-blue-50 rounded-lg p-3 mb-4 text-sm text-blue-800">
+              <p className="font-bold mb-1">バッジってなに？</p>
+              <p>
+                <ruby>勉強<rt>べんきょう</rt></ruby>をがんばると、ごほうびにバッジがもらえるよ！
+                <ruby>毎日<rt>まいにち</rt></ruby><ruby>続<rt>つづ</rt></ruby>けたり、たくさん<ruby>勉強<rt>べんきょう</rt></ruby>するともらえるバッジが<ruby>増<rt>ふ</rt></ruby>えていくよ。
+              </p>
+            </div>
             <div className="grid grid-cols-5 gap-3">
               {BADGES.map((badge) => {
                 const isEarned = gameData?.earnedBadges.includes(badge.id);
@@ -288,23 +308,20 @@ export default function KidsDashboardPage() {
               })}
             </div>
             <div className="text-center mt-3 text-sm text-gray-500">
-              {gameData?.earnedBadges.length || 0} / {BADGES.length} 個獲得
+              {gameData?.earnedBadges.length || 0} / {BADGES.length} こ<ruby>獲得<rt>かくとく</rt></ruby>
             </div>
           </CardContent>
         </Card>
       </main>
 
-      {/* 下部ナビゲーション - 高校生版と同じスタイル */}
+      {/* 下部ナビゲーション */}
       <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50">
         <div className="flex justify-around items-center h-16 max-w-lg mx-auto">
           <Link href="/kids/dashboard" className={`flex items-center justify-center w-full h-full transition-colors ${pathname === "/kids/dashboard" ? "text-blue-600 font-bold" : "text-gray-500"}`}>
-            <span className="text-sm">ホーム</span>
-          </Link>
-          <Link href="/kids/study" className={`flex items-center justify-center w-full h-full transition-colors ${pathname === "/kids/study" ? "text-blue-600 font-bold" : "text-gray-500"}`}>
-            <span className="text-sm">学習記録</span>
+            <span className="text-sm">つみあげひょう</span>
           </Link>
           <Link href="/kids/wishlist" className={`flex items-center justify-center w-full h-full transition-colors ${pathname === "/kids/wishlist" ? "text-blue-600 font-bold" : "text-gray-500"}`}>
-            <span className="text-sm">目標</span>
+            <span className="text-sm">やりたいことリスト</span>
           </Link>
           <Link href="/kids/messages" className={`flex items-center justify-center w-full h-full transition-colors ${pathname === "/kids/messages" ? "text-blue-600 font-bold" : "text-gray-500"}`}>
             <span className="text-sm">メッセージ</span>

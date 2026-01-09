@@ -135,12 +135,16 @@ export default function KidsWishlistPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
-      {/* ヘッダー - 高校生版と同じスタイル */}
+      {/* ヘッダー */}
       <header className="bg-blue-700 text-white shadow-md">
         <div className="max-w-7xl mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
-              <h1 className="font-bold text-lg">学習進捗管理</h1>
+              <h1 className="font-bold text-lg">
+                <ruby>学習<rt>がくしゅう</rt></ruby>
+                <ruby>進捗<rt>しんちょく</rt></ruby>
+                <ruby>管理<rt>かんり</rt></ruby>
+              </h1>
               {user && (
                 <Badge variant="secondary" className="ml-2">
                   {user.name}
@@ -164,7 +168,7 @@ export default function KidsWishlistPage() {
           <CardContent className="p-4">
             <div className="flex gap-2">
               <Input
-                placeholder="やりたいことを入力"
+                placeholder="やりたいことを入力してね"
                 value={newItem}
                 onChange={(e) => setNewItem(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleAdd()}
@@ -174,7 +178,7 @@ export default function KidsWishlistPage() {
                 onClick={handleAdd}
                 disabled={adding || !newItem.trim()}
               >
-                追加
+                <ruby>追加<rt>ついか</rt></ruby>
               </Button>
             </div>
           </CardContent>
@@ -185,7 +189,7 @@ export default function KidsWishlistPage() {
           <Card>
             <CardContent className="p-4">
               <div className="flex justify-between items-center mb-2">
-                <span className="text-sm text-gray-600">達成状況</span>
+                <span className="text-sm text-gray-600"><ruby>達成<rt>たっせい</rt></ruby><ruby>状況<rt>じょうきょう</rt></ruby></span>
                 <span className="font-bold">
                   {completedCount} / {items.length}
                 </span>
@@ -207,7 +211,7 @@ export default function KidsWishlistPage() {
           </CardHeader>
           <CardContent>
             {items.length === 0 ? (
-              <p className="text-gray-500 text-center py-4">やりたいことを追加してみましょう</p>
+              <p className="text-gray-500 text-center py-4">やりたいことを<ruby>追加<rt>ついか</rt></ruby>してみよう！</p>
             ) : (
               <div className="space-y-2">
                 {items.map((item) => (
@@ -258,13 +262,10 @@ export default function KidsWishlistPage() {
       <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50">
         <div className="flex justify-around items-center h-16 max-w-lg mx-auto">
           <Link href="/kids/dashboard" className={`flex items-center justify-center w-full h-full transition-colors ${pathname === "/kids/dashboard" ? "text-blue-600 font-bold" : "text-gray-500"}`}>
-            <span className="text-sm">ホーム</span>
-          </Link>
-          <Link href="/kids/study" className={`flex items-center justify-center w-full h-full transition-colors ${pathname === "/kids/study" ? "text-blue-600 font-bold" : "text-gray-500"}`}>
-            <span className="text-sm">学習記録</span>
+            <span className="text-sm">つみあげひょう</span>
           </Link>
           <Link href="/kids/wishlist" className={`flex items-center justify-center w-full h-full transition-colors ${pathname === "/kids/wishlist" ? "text-blue-600 font-bold" : "text-gray-500"}`}>
-            <span className="text-sm">目標</span>
+            <span className="text-sm">やりたいことリスト</span>
           </Link>
           <Link href="/kids/messages" className={`flex items-center justify-center w-full h-full transition-colors ${pathname === "/kids/messages" ? "text-blue-600 font-bold" : "text-gray-500"}`}>
             <span className="text-sm">メッセージ</span>
