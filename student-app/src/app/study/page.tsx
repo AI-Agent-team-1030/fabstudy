@@ -116,9 +116,10 @@ export default function StudyPage() {
         ...doc.data(),
       }));
       logsData.sort((a: any, b: any) => {
-        const dateA = a.date?.toDate?.() || new Date(0);
-        const dateB = b.date?.toDate?.() || new Date(0);
-        return dateB.getTime() - dateA.getTime();
+        // まず記録作成日時でソート（最新が上）
+        const createdA = a.createdAt?.toDate?.() || new Date(0);
+        const createdB = b.createdAt?.toDate?.() || new Date(0);
+        return createdB.getTime() - createdA.getTime();
       });
       setLogs(logsData);
     } catch (error) {
