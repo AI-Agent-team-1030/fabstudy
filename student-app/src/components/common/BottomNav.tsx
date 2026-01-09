@@ -7,7 +7,6 @@ const navItems = [
   { href: "/dashboard", label: "つみあげ表" },
   { href: "/study", label: "学習記録" },
   { href: "/tasks", label: "目標" },
-  { href: "/progress", label: "現状把握" },
   { href: "/messages", label: "メッセージ" },
 ];
 
