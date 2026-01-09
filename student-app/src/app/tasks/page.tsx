@@ -302,7 +302,7 @@ export default function TasksPage() {
   const formatEndDate = (end: Timestamp | null) => {
     if (!end) return null;
     const d = end.toDate();
-    return `期限: ${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}`;
+    return `達成日: ${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}`;
   };
 
   const renderTask = (task: Task, depth: number = 0) => {
@@ -469,7 +469,7 @@ export default function TasksPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>終了日</Label>
+                <Label>達成日</Label>
                 <Input
                   type="date"
                   value={newTaskEndDate}
