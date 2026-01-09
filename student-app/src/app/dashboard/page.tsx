@@ -192,6 +192,15 @@ export default function DashboardPage() {
     return days;
   };
 
+  // 週間データに含まれる科目を取得
+  const getWeeklySubjects = () => {
+    const subjects = new Set<string>();
+    weeklyData.forEach((day) => {
+      Object.keys(day.subjects).forEach((subj) => subjects.add(subj));
+    });
+    return Array.from(subjects);
+  };
+
   // 今月の勉強時間を計算
   const getMonthlyTotal = () => {
     const today = new Date();
@@ -409,6 +418,21 @@ export default function DashboardPage() {
                       })}
                     </div>
                   </div>
+
+                  {/* 科目凡例 */}
+                  {getWeeklySubjects().length > 0 && (
+                    <div className="flex flex-wrap gap-3 mt-4 pt-4 border-t">
+                      {getWeeklySubjects().map((subj) => (
+                        <div key={subj} className="flex items-center gap-1">
+                          <span
+                            className="w-3 h-3 rounded-sm"
+                            style={{ backgroundColor: getSubjectColor(subj) }}
+                          />
+                          <span className="text-xs text-gray-600">{getSubjectLabel(subj)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </>
             )}
