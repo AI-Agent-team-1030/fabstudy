@@ -211,3 +211,80 @@ export interface SessionUser {
   grade: number;
   isElementary: boolean;
 }
+
+// ゲーミフィケーション（小学生向け）
+
+// レベル設定
+export const LEVEL_CONFIG = {
+  expPerMinute: 2,        // 1分 = 2経験値
+  expPerRecord: 10,       // 1記録 = 10経験値
+  baseExpForLevel: 100,   // レベル1→2に必要な経験値
+  expMultiplier: 1.2,     // レベルごとの必要経験値倍率
+};
+
+// レベルに必要な累計経験値を計算
+export const getExpForLevel = (level: number): number => {
+  if (level <= 1) return 0;
+  let totalExp = 0;
+  for (let i = 1; i < level; i++) {
+    totalExp += Math.floor(LEVEL_CONFIG.baseExpForLevel * Math.pow(LEVEL_CONFIG.expMultiplier, i - 1));
+  }
+  return totalExp;
+};
+
+// 経験値からレベルを計算
+export const getLevelFromExp = (exp: number): { level: number; currentExp: number; nextLevelExp: number } => {
+  let level = 1;
+  let accumulatedExp = 0;
+
+  while (true) {
+    const expNeeded = Math.floor(LEVEL_CONFIG.baseExpForLevel * Math.pow(LEVEL_CONFIG.expMultiplier, level - 1));
+    if (accumulatedExp + expNeeded > exp) {
+      return {
+        level,
+        currentExp: exp - accumulatedExp,
+        nextLevelExp: expNeeded,
+      };
+    }
+    accumulatedExp += expNeeded;
+    level++;
+    if (level > 100) break; // 安全のため上限
+  }
+  return { level: 100, currentExp: 0, nextLevelExp: 0 };
+};
+
+// バッジ定義
+export interface BadgeDefinition {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  condition: "streak" | "total_time" | "total_records";
+  threshold: number;
+}
+
+export const BADGES: BadgeDefinition[] = [
+  // 連続記録バッジ
+  { id: "streak_3", name: "3日連続", description: "3日連続で勉強を記録した！", icon: "🔥", condition: "streak", threshold: 3 },
+  { id: "streak_7", name: "1週間連続", description: "1週間連続で勉強を記録した！", icon: "⭐", condition: "streak", threshold: 7 },
+  { id: "streak_14", name: "2週間連続", description: "2週間連続で勉強を記録した！", icon: "🌟", condition: "streak", threshold: 14 },
+  { id: "streak_30", name: "1ヶ月連続", description: "1ヶ月連続で勉強を記録した！", icon: "👑", condition: "streak", threshold: 30 },
+  // 累計時間バッジ
+  { id: "time_60", name: "1時間達成", description: "累計1時間勉強した！", icon: "📚", condition: "total_time", threshold: 60 },
+  { id: "time_300", name: "5時間達成", description: "累計5時間勉強した！", icon: "📖", condition: "total_time", threshold: 300 },
+  { id: "time_600", name: "10時間達成", description: "累計10時間勉強した！", icon: "🎯", condition: "total_time", threshold: 600 },
+  { id: "time_1800", name: "30時間達成", description: "累計30時間勉強した！", icon: "🏆", condition: "total_time", threshold: 1800 },
+  { id: "time_6000", name: "100時間達成", description: "累計100時間勉強した！", icon: "💎", condition: "total_time", threshold: 6000 },
+];
+
+// ユーザーのゲーミフィケーションデータ
+export interface UserGameData {
+  id: string;
+  userId: string;
+  totalExp: number;
+  earnedBadges: string[]; // バッジIDの配列
+  currentStreak: number;
+  longestStreak: number;
+  lastRecordDate: string; // YYYY-MM-DD形式
+  updatedAt: Timestamp;
+}
