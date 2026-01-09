@@ -20,6 +20,34 @@ export function Header({ variant = "student" }: HeaderProps) {
     router.push("/login");
   };
 
+  // 生徒用はシンプルヘッダー（ナビは下部タブへ移動）
+  if (variant === "student") {
+    return (
+      <header className="bg-blue-700 text-white shadow-md">
+        <div className="max-w-7xl mx-auto px-4 py-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <h1 className="font-bold text-lg">学習進捗管理</h1>
+              {user && (
+                <Badge variant="secondary" className="ml-2">
+                  {user.name}
+                </Badge>
+              )}
+            </div>
+            <Button
+              variant="ghost"
+              onClick={handleLogout}
+              className="text-white hover:bg-white/20"
+            >
+              ログアウト
+            </Button>
+          </div>
+        </div>
+      </header>
+    );
+  }
+
+  // 先生用・キッズ用は従来のナビ付きヘッダー
   const getNavItems = () => {
     if (variant === "teacher") {
       return [
@@ -36,13 +64,7 @@ export function Header({ variant = "student" }: HeaderProps) {
         { href: "/kids/messages", label: "おしらせ" },
       ];
     }
-    return [
-      { href: "/dashboard", label: "ダッシュボード" },
-      { href: "/study", label: "学習記録" },
-      { href: "/tasks", label: "目標" },
-      { href: "/exams", label: "テスト記録" },
-      { href: "/messages", label: "メッセージ" },
-    ];
+    return [];
   };
 
   const bgColor = variant === "teacher"
@@ -50,6 +72,8 @@ export function Header({ variant = "student" }: HeaderProps) {
     : variant === "kids"
     ? "bg-green-600"
     : "bg-blue-700";
+
+  const navItems = getNavItems();
 
   return (
     <header className={`${bgColor} text-white shadow-md`}>
@@ -73,23 +97,25 @@ export function Header({ variant = "student" }: HeaderProps) {
             ログアウト
           </Button>
         </div>
-        <nav className="mt-3 flex space-x-1 overflow-x-auto pb-1">
-          {getNavItems().map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`px-3 py-2 rounded-md transition-colors whitespace-nowrap ${
-                variant === "kids" ? "text-lg px-4" : "text-sm"
-              } ${
-                pathname === item.href || pathname.startsWith(item.href + "/")
-                  ? "bg-white/20 font-medium"
-                  : "hover:bg-white/10"
-              }`}
-            >
-              {item.label}
-            </Link>
-          ))}
-        </nav>
+        {navItems.length > 0 && (
+          <nav className="mt-3 flex space-x-1 overflow-x-auto pb-1">
+            {navItems.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`px-3 py-2 rounded-md transition-colors whitespace-nowrap ${
+                  variant === "kids" ? "text-lg px-4" : "text-sm"
+                } ${
+                  pathname === item.href || pathname.startsWith(item.href + "/")
+                    ? "bg-white/20 font-medium"
+                    : "hover:bg-white/10"
+                }`}
+              >
+                {item.label}
+              </Link>
+            ))}
+          </nav>
+        )}
       </div>
     </header>
   );
