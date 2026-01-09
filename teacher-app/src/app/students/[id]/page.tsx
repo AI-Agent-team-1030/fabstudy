@@ -58,6 +58,14 @@ interface Task {
   createdAt: Timestamp;
 }
 
+interface WishItem {
+  id: string;
+  userId: string;
+  title: string;
+  completed: boolean;
+  createdAt: Timestamp;
+}
+
 type TaskLevel = "goal" | "large" | "medium" | "small";
 
 const LEVEL_CONFIG: Record<TaskLevel, { label: string; color: string; bgColor: string; childLevel: TaskLevel | null }> = {
@@ -115,11 +123,13 @@ export default function StudentDetailPage() {
   const [student, setStudent] = useState<Student | null>(null);
   const [studyLogs, setStudyLogs] = useState<StudyLog[]>([]);
   const [allTasks, setAllTasks] = useState<Task[]>([]);
+  const [wishlistItems, setWishlistItems] = useState<WishItem[]>([]);
   const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
   const [loadingData, setLoadingData] = useState(true);
   const [addingTo, setAddingTo] = useState<{ parentId: string | null; level: TaskLevel } | null>(null);
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [newTaskEndDate, setNewTaskEndDate] = useState("");
+  const [newWishItem, setNewWishItem] = useState("");
 
   useEffect(() => {
     if (!loading && (!user || user.role !== "teacher")) {
@@ -144,10 +154,11 @@ export default function StudentDetailPage() {
         return;
       }
 
-      setStudent({
+      const studentData = {
         id: studentSnap.id,
         ...studentSnap.data(),
-      } as Student);
+      } as Student;
+      setStudent(studentData);
 
       // 勉強ログを取得
       const logsRef = collection(db, "studyLogs");
@@ -161,17 +172,38 @@ export default function StudentDetailPage() {
       logsData.sort((a, b) => b.date.toDate().getTime() - a.date.toDate().getTime());
       setStudyLogs(logsData);
 
-      // 全タスクを取得
-      const tasksRef = collection(db, "tasks");
-      const tasksQuery = query(tasksRef, where("userId", "==", studentId));
-      const tasksSnap = await getDocs(tasksQuery);
+      // 小学生の場合はwishlistを取得、それ以外はtasksを取得
+      if (studentData.isElementary) {
+        const wishlistRef = collection(db, "wishlist");
+        const wishlistQuery = query(wishlistRef, where("userId", "==", studentId));
+        const wishlistSnap = await getDocs(wishlistQuery);
 
-      const tasksData = tasksSnap.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as Task[];
+        const wishlistData = wishlistSnap.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        })) as WishItem[];
+        wishlistData.sort((a, b) => {
+          if (a.completed !== b.completed) {
+            return a.completed ? 1 : -1;
+          }
+          const dateA = a.createdAt?.toDate?.() || new Date(0);
+          const dateB = b.createdAt?.toDate?.() || new Date(0);
+          return dateB.getTime() - dateA.getTime();
+        });
+        setWishlistItems(wishlistData);
+      } else {
+        // 全タスクを取得
+        const tasksRef = collection(db, "tasks");
+        const tasksQuery = query(tasksRef, where("userId", "==", studentId));
+        const tasksSnap = await getDocs(tasksQuery);
 
-      setAllTasks(tasksData);
+        const tasksData = tasksSnap.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        })) as Task[];
+
+        setAllTasks(tasksData);
+      }
     } catch (error) {
       console.error("Failed to load student data:", error);
     } finally {
@@ -361,6 +393,57 @@ export default function StudentDetailPage() {
     } catch (error) {
       console.error("Failed to uncomplete task:", error);
       toast.error("更新に失敗しました");
+    }
+  };
+
+  // やりたいことリスト追加（小学生用）
+  const handleAddWishItem = async () => {
+    if (!newWishItem.trim()) return;
+
+    try {
+      const wishlistRef = collection(db, "wishlist");
+      await addDoc(wishlistRef, {
+        userId: studentId,
+        title: newWishItem.trim(),
+        completed: false,
+        createdAt: Timestamp.now(),
+      });
+      toast.success("追加しました");
+      setNewWishItem("");
+      loadStudentData();
+    } catch (error) {
+      console.error("Failed to add wish item:", error);
+      toast.error("追加に失敗しました");
+    }
+  };
+
+  // やりたいことリスト完了切り替え（小学生用）
+  const handleToggleWishItem = async (item: WishItem) => {
+    try {
+      const itemRef = doc(db, "wishlist", item.id);
+      await updateDoc(itemRef, {
+        completed: !item.completed,
+      });
+      if (!item.completed) {
+        toast.success("完了しました！");
+      }
+      loadStudentData();
+    } catch (error) {
+      console.error("Failed to toggle wish item:", error);
+    }
+  };
+
+  // やりたいことリスト削除（小学生用）
+  const handleDeleteWishItem = async (itemId: string) => {
+    if (!confirm("削除しますか？")) return;
+
+    try {
+      await deleteDoc(doc(db, "wishlist", itemId));
+      toast.success("削除しました");
+      loadStudentData();
+    } catch (error) {
+      console.error("Failed to delete wish item:", error);
+      toast.error("削除に失敗しました");
     }
   };
 
@@ -654,33 +737,127 @@ export default function StudentDetailPage() {
           </CardContent>
         </Card>
 
-        {/* 目標・タスク一覧 */}
-        <Card className="mb-6">
-          <CardHeader>
-            <div className="flex justify-between items-center">
-              <div>
-                <CardTitle>目標とタスク</CardTitle>
-                <p className="text-sm text-gray-500">クリックで展開・編集できます</p>
+        {/* 目標・タスク一覧 or やりたいことリスト */}
+        {student.isElementary ? (
+          // 小学生用: やりたいことリスト
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle>やりたいことリスト</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {/* 追加フォーム */}
+              <div className="flex gap-2 mb-4">
+                <Input
+                  placeholder="やりたいことを入力"
+                  value={newWishItem}
+                  onChange={(e) => setNewWishItem(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleAddWishItem()}
+                  className="flex-1"
+                />
+                <Button
+                  onClick={handleAddWishItem}
+                  disabled={!newWishItem.trim()}
+                >
+                  追加
+                </Button>
               </div>
-              <Button
-                onClick={() => setAddingTo({ parentId: null, level: "goal" })}
-              >
-                + GOALを追加
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {goals.length === 0 ? (
-              <p className="text-gray-500 text-center py-4">
-                まだ目標が設定されていません
-              </p>
-            ) : (
-              <div className="space-y-4">
-                {goals.map((goal) => renderTask(goal))}
+
+              {/* 進捗 */}
+              {wishlistItems.length > 0 && (
+                <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-sm text-gray-600">達成状況</span>
+                    <span className="font-bold">
+                      {wishlistItems.filter((i) => i.completed).length} / {wishlistItems.length}
+                    </span>
+                  </div>
+                  <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-blue-500 transition-all"
+                      style={{ width: `${wishlistItems.length > 0 ? (wishlistItems.filter((i) => i.completed).length / wishlistItems.length) * 100 : 0}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* リスト */}
+              {wishlistItems.length === 0 ? (
+                <p className="text-gray-500 text-center py-4">
+                  やりたいことを追加してみよう
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {wishlistItems.map((item) => (
+                    <div
+                      key={item.id}
+                      className={`flex items-center gap-3 p-3 rounded-lg ${
+                        item.completed ? "bg-green-50" : "bg-gray-50"
+                      }`}
+                    >
+                      <button
+                        onClick={() => handleToggleWishItem(item)}
+                        className={`w-6 h-6 rounded border-2 flex items-center justify-center transition-all ${
+                          item.completed
+                            ? "bg-green-500 border-green-500 text-white"
+                            : "bg-white border-gray-300 hover:border-blue-500"
+                        }`}
+                      >
+                        {item.completed && (
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                          </svg>
+                        )}
+                      </button>
+                      <span
+                        className={`flex-1 ${
+                          item.completed ? "text-gray-400 line-through" : "text-gray-700"
+                        }`}
+                      >
+                        {item.title}
+                      </span>
+                      <button
+                        onClick={() => handleDeleteWishItem(item.id)}
+                        className="text-gray-400 hover:text-red-500"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        ) : (
+          // 中学生・高校生用: 目標とタスク階層構造
+          <Card className="mb-6">
+            <CardHeader>
+              <div className="flex justify-between items-center">
+                <div>
+                  <CardTitle>目標とタスク</CardTitle>
+                  <p className="text-sm text-gray-500">クリックで展開・編集できます</p>
+                </div>
+                <Button
+                  onClick={() => setAddingTo({ parentId: null, level: "goal" })}
+                >
+                  + GOALを追加
+                </Button>
               </div>
-            )}
-          </CardContent>
-        </Card>
+            </CardHeader>
+            <CardContent>
+              {goals.length === 0 ? (
+                <p className="text-gray-500 text-center py-4">
+                  まだ目標が設定されていません
+                </p>
+              ) : (
+                <div className="space-y-4">
+                  {goals.map((goal) => renderTask(goal))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {/* 週間棒グラフ */}
         <Card className="mb-6">
