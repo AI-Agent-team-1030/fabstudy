@@ -181,8 +181,8 @@ export default function DashboardPage() {
           {/* Goal一覧 */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">GOAL</CardTitle>
-              <CardDescription>目標の進捗状況</CardDescription>
+              <CardTitle className="text-lg">目標</CardTitle>
+              <CardDescription>進捗状況</CardDescription>
             </CardHeader>
             <CardContent>
               {loadingGoals ? (
@@ -214,21 +214,13 @@ export default function DashboardPage() {
         {/* クイックアクション */}
         <div className="mt-8">
           <h3 className="text-lg font-semibold text-gray-800 mb-4">クイックアクション</h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             <Card className="cursor-pointer hover:bg-blue-50 transition-colors" onClick={() => router.push("/study")}>
               <CardContent className="p-4 text-center">
                 <div className="w-10 h-10 mx-auto mb-2 bg-blue-100 rounded-full flex items-center justify-center">
                   <span className="text-blue-600 font-bold">学</span>
                 </div>
                 <p className="font-medium">勉強を記録</p>
-              </CardContent>
-            </Card>
-            <Card className="cursor-pointer hover:bg-green-50 transition-colors" onClick={() => router.push("/tasks")}>
-              <CardContent className="p-4 text-center">
-                <div className="w-10 h-10 mx-auto mb-2 bg-green-100 rounded-full flex items-center justify-center">
-                  <span className="text-green-600 font-bold">課</span>
-                </div>
-                <p className="font-medium">タスクを確認</p>
               </CardContent>
             </Card>
             <Card className="cursor-pointer hover:bg-yellow-50 transition-colors" onClick={() => router.push("/exams")}>

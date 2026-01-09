@@ -15,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { SUBJECTS } from "@/types";
+import { SUBJECTS, getSubjectsByGrade } from "@/types";
 import { db } from "@/lib/firebase";
 import { collection, addDoc, query, where, getDocs, Timestamp } from "firebase/firestore";
 import { toast } from "sonner";
@@ -265,11 +265,80 @@ export default function StudyPage() {
       <Header variant="student" />
       <main className="max-w-4xl mx-auto px-4 py-6">
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold text-gray-800">学習ログ</h2>
+          <h2 className="text-2xl font-bold text-gray-800">学習記録</h2>
           <Button variant="outline" onClick={() => router.push("/study/archive")}>
-            アーカイブを見る
+            過去の記録を見る
           </Button>
         </div>
+
+        {/* 記録フォーム - 目立つ位置に */}
+        <Card className="mb-6 border-2 border-blue-200 bg-blue-50">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg text-blue-800">勉強を記録する</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="space-y-2">
+                  <Label>科目</Label>
+                  <Select value={subject} onValueChange={setSubject}>
+                    <SelectTrigger className="bg-white">
+                      <SelectValue placeholder="科目を選択" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {getSubjectsByGrade(user.grade).map((s) => (
+                        <SelectItem key={s.key} value={s.key}>
+                          {s.label}
+                        </SelectItem>
+                      ))}
+                      <SelectItem value="other">その他（入力）</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                {subject === "other" && (
+                  <div className="space-y-2">
+                    <Label>科目名を入力</Label>
+                    <Input
+                      className="bg-white"
+                      placeholder="例: 現代文、古典、リスニング"
+                      value={customSubject}
+                      onChange={(e) => setCustomSubject(e.target.value)}
+                    />
+                  </div>
+                )}
+                <div className="space-y-2">
+                  <Label>勉強時間（分）</Label>
+                  <Input
+                    className="bg-white"
+                    type="number"
+                    placeholder="30"
+                    value={duration}
+                    onChange={(e) => setDuration(e.target.value)}
+                    min="1"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>日付</Label>
+                  <Input
+                    className="bg-white"
+                    type="date"
+                    value={date}
+                    onChange={(e) => setDate(e.target.value)}
+                  />
+                </div>
+                <div className="flex items-end">
+                  <Button
+                    type="submit"
+                    className="w-full bg-blue-600 hover:bg-blue-700"
+                    disabled={submitting || !subject || (subject === "other" && !customSubject) || !duration}
+                  >
+                    {submitting ? "記録中..." : "記録する"}
+                  </Button>
+                </div>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
 
         {/* 学習時間サマリー */}
         <Card className="mb-6">
@@ -407,70 +476,6 @@ export default function StudyPage() {
             ) : (
               <p className="text-gray-500 text-center py-8">データがありません</p>
             )}
-          </CardContent>
-        </Card>
-
-        {/* 記録フォーム */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>勉強を記録する</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label>科目</Label>
-                  <Select value={subject} onValueChange={setSubject}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="科目を選択" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {SUBJECTS.map((s) => (
-                        <SelectItem key={s.key} value={s.key}>
-                          {s.label}
-                        </SelectItem>
-                      ))}
-                      <SelectItem value="other">その他（入力）</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                {subject === "other" && (
-                  <div className="space-y-2">
-                    <Label>科目名を入力</Label>
-                    <Input
-                      placeholder="例: 現代文、古典、リスニング"
-                      value={customSubject}
-                      onChange={(e) => setCustomSubject(e.target.value)}
-                    />
-                  </div>
-                )}
-                <div className="space-y-2">
-                  <Label>勉強時間（分）</Label>
-                  <Input
-                    type="number"
-                    placeholder="30"
-                    value={duration}
-                    onChange={(e) => setDuration(e.target.value)}
-                    min="1"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>日付</Label>
-                  <Input
-                    type="date"
-                    value={date}
-                    onChange={(e) => setDate(e.target.value)}
-                  />
-                </div>
-              </div>
-              <Button
-                type="submit"
-                className="w-full"
-                disabled={submitting || !subject || (subject === "other" && !customSubject) || !duration}
-              >
-                {submitting ? "記録中..." : "記録する"}
-              </Button>
-            </form>
           </CardContent>
         </Card>
 

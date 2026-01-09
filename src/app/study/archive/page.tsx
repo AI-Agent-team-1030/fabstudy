@@ -112,7 +112,7 @@ export default function ArchivePage() {
       <Header variant="student" />
       <main className="max-w-4xl mx-auto px-4 py-6">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-gray-800">学習アーカイブ</h2>
+          <h2 className="text-2xl font-bold text-gray-800">過去の学習記録</h2>
           <Button variant="outline" onClick={() => router.push("/study")}>
             ← 戻る
           </Button>
@@ -127,9 +127,9 @@ export default function ArchivePage() {
         ) : archives.length === 0 ? (
           <Card>
             <CardContent className="py-8 text-center">
-              <p className="text-gray-500 mb-2">アーカイブはまだありません</p>
+              <p className="text-gray-500 mb-2">過去の記録はまだありません</p>
               <p className="text-sm text-gray-400">
-                1週間以上前のデータが自動的にアーカイブされます
+                1週間以上前のデータが自動的に保存されます
               </p>
             </CardContent>
           </Card>
