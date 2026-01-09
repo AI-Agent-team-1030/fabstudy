@@ -73,7 +73,6 @@ export default function TasksPage() {
   });
   const [addingTo, setAddingTo] = useState<{ parentId: string | null; level: TaskLevel } | null>(null);
   const [newTaskTitle, setNewTaskTitle] = useState("");
-  const [newTaskStartDate, setNewTaskStartDate] = useState("");
   const [newTaskEndDate, setNewTaskEndDate] = useState("");
 
   // 展開状態をlocalStorageに保存
@@ -156,7 +155,7 @@ export default function TasksPage() {
         level: addingTo.level,
         parentId: addingTo.parentId,
         title: newTaskTitle,
-        startDate: newTaskStartDate ? Timestamp.fromDate(new Date(newTaskStartDate)) : null,
+        startDate: null,
         endDate: newTaskEndDate ? Timestamp.fromDate(new Date(newTaskEndDate)) : null,
         status: "pending",
         progress: 0,
@@ -166,7 +165,6 @@ export default function TasksPage() {
       toast.success("タスクを追加しました！");
       setAddingTo(null);
       setNewTaskTitle("");
-      setNewTaskStartDate("");
       setNewTaskEndDate("");
       loadTasks();
     } catch (error) {
@@ -301,18 +299,10 @@ export default function TasksPage() {
     }
   };
 
-  const formatDateRange = (start: Timestamp | null, end: Timestamp | null) => {
-    if (!start && !end) return null;
-    const formatDate = (ts: Timestamp) => {
-      const d = ts.toDate();
-      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-    };
-    if (start && end) {
-      return `${formatDate(start)} 〜 ${formatDate(end)}`;
-    }
-    if (start) return `${formatDate(start)} 〜`;
-    if (end) return `〜 ${formatDate(end)}`;
-    return null;
+  const formatEndDate = (end: Timestamp | null) => {
+    if (!end) return null;
+    const d = end.toDate();
+    return `期限: ${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}`;
   };
 
   const renderTask = (task: Task, depth: number = 0) => {
@@ -321,7 +311,7 @@ export default function TasksPage() {
     const children = childLevel ? getChildren(task.id, childLevel) : [];
     const isExpanded = expandedTasks.has(task.id);
     const progress = task.status === "completed" ? 100 : calculateProgress(task.id, task.level);
-    const dateRange = formatDateRange(task.startDate, task.endDate);
+    const endDateDisplay = formatEndDate(task.endDate);
 
     return (
       <div key={task.id} className={`${depth > 0 ? "ml-8" : ""} mb-4`}>
@@ -340,8 +330,8 @@ export default function TasksPage() {
             <div className="flex justify-between items-start mb-2">
               <div>
                 <h3 className="font-bold text-lg">{task.title}</h3>
-                {dateRange && (
-                  <p className="text-sm text-gray-500">{dateRange}</p>
+                {endDateDisplay && (
+                  <p className="text-sm text-gray-500">{endDateDisplay}</p>
                 )}
               </div>
               <Button
@@ -478,23 +468,13 @@ export default function TasksPage() {
                   onChange={(e) => setNewTaskTitle(e.target.value)}
                 />
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>開始日</Label>
-                  <Input
-                    type="date"
-                    value={newTaskStartDate}
-                    onChange={(e) => setNewTaskStartDate(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>終了日</Label>
-                  <Input
-                    type="date"
-                    value={newTaskEndDate}
-                    onChange={(e) => setNewTaskEndDate(e.target.value)}
-                  />
-                </div>
+              <div className="space-y-2">
+                <Label>終了日</Label>
+                <Input
+                  type="date"
+                  value={newTaskEndDate}
+                  onChange={(e) => setNewTaskEndDate(e.target.value)}
+                />
               </div>
               <div className="flex gap-2 justify-end">
                 <Button variant="outline" onClick={() => setAddingTo(null)}>
