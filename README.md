@@ -1,36 +1,61 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 学習進捗管理ツール (fabstudy)
 
-## Getting Started
+塾の生徒の学習進捗を管理するツールです。
 
-First, run the development server:
+## プロジェクト構成
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+```
+study-tracker/
+├── student-app/    # 生徒用アプリ
+└── teacher-app/    # 教師用アプリ
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## デプロイ先
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- 生徒用: fabstudy-student.vercel.app
+- 教師用: fabstudy-teacher.vercel.app
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 開発環境のセットアップ
 
-## Learn More
+### 生徒用アプリ
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+cd student-app
+npm install
+npm run dev
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### 教師用アプリ
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+cd teacher-app
+npm install
+npm run dev
+```
 
-## Deploy on Vercel
+## 環境変数
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+各アプリのディレクトリに `.env.local` を作成してください。
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```
+NEXT_PUBLIC_FIREBASE_API_KEY=xxx
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=xxx
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=xxx
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=xxx
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=xxx
+NEXT_PUBLIC_FIREBASE_APP_ID=xxx
+```
+
+## Vercelでのデプロイ
+
+同じリポジトリから2つのプロジェクトとしてデプロイします。
+
+1. Vercelで「New Project」を作成
+2. このリポジトリをインポート
+3. 「Root Directory」を `student-app` に設定
+4. デプロイ
+
+5. 再度「New Project」を作成
+6. 同じリポジトリをインポート
+7. 「Root Directory」を `teacher-app` に設定
+8. デプロイ
