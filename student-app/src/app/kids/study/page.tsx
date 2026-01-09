@@ -136,55 +136,6 @@ export default function KidsStudyPage() {
     return <>{hours}<ruby>時間<rt>じかん</rt></ruby>{mins}<ruby>分<rt>ふん</rt></ruby></>;
   };
 
-  // 週間データ（日付×科目）- 棒グラフ用
-  const getWeeklyData = () => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const days: { dateKey: string; label: string; subjects: Record<string, number> }[] = [];
-
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date(today);
-      d.setDate(d.getDate() - i);
-      const dateKey = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
-      days.push({
-        dateKey,
-        label: `${d.getMonth() + 1}/${d.getDate()}`,
-        subjects: {},
-      });
-    }
-
-    allLogs.forEach((log) => {
-      const logDate = log.date?.toDate?.() || new Date(log.date);
-      const logDateKey = `${logDate.getFullYear()}-${logDate.getMonth()}-${logDate.getDate()}`;
-
-      const day = days.find((d) => d.dateKey === logDateKey);
-      if (day) {
-        const subj = log.subject || "other";
-        day.subjects[subj] = (day.subjects[subj] || 0) + (log.duration || 0);
-      }
-    });
-
-    return days;
-  };
-
-  // 週間データに含まれる科目を取得
-  const getWeeklySubjects = () => {
-    const subjectSet = new Set<string>();
-    weeklyData.forEach((day) => {
-      Object.keys(day.subjects).forEach((subj) => subjectSet.add(subj));
-    });
-    return Array.from(subjectSet);
-  };
-
-  const weeklyData = getWeeklyData();
-  const maxDailyMinutes = Math.max(
-    ...weeklyData.map((d) =>
-      Object.values(d.subjects).reduce((sum, v) => sum + v, 0)
-    ),
-    60
-  );
-
   if (loading || !user) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -277,71 +228,6 @@ export default function KidsStudyPage() {
                 </div>
               </div>
             </form>
-          </CardContent>
-        </Card>
-
-        {/* 週間棒グラフ */}
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg">
-              <ruby>今週<rt>こんしゅう</rt></ruby>の<ruby>学習<rt>がくしゅう</rt></ruby><ruby>記録<rt>きろく</rt></ruby>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-4">
-            <div className="flex gap-2 h-48">
-              <div className="flex flex-col justify-between text-xs text-gray-500 pr-2 pb-6">
-                <span>{Math.ceil(maxDailyMinutes / 60)}<ruby>時間<rt>じかん</rt></ruby></span>
-                <span>{Math.ceil(maxDailyMinutes / 120)}<ruby>時間<rt>じかん</rt></ruby></span>
-                <span>0</span>
-              </div>
-              <div className="flex-1 flex items-end gap-2">
-                {weeklyData.map((day, index) => {
-                  const dayTotal = Object.values(day.subjects).reduce((sum, v) => sum + v, 0);
-                  const maxHeight = 160;
-                  const barHeight = maxDailyMinutes > 0 ? (dayTotal / maxDailyMinutes) * maxHeight : 0;
-
-                  return (
-                    <div key={index} className="flex-1 flex flex-col items-center">
-                      <div className="w-full flex flex-col justify-end" style={{ height: `${maxHeight}px` }}>
-                        <div
-                          className="w-full flex flex-col-reverse rounded-t overflow-hidden"
-                          style={{ height: `${barHeight}px` }}
-                        >
-                          {Object.entries(day.subjects).map(([subj, minutes]) => {
-                            const segmentHeight = dayTotal > 0 ? (minutes / dayTotal) * barHeight : 0;
-                            return (
-                              <div
-                                key={subj}
-                                style={{
-                                  height: `${segmentHeight}px`,
-                                  backgroundColor: getSubjectColor(subj),
-                                }}
-                              />
-                            );
-                          })}
-                        </div>
-                      </div>
-                      <span className="text-xs text-gray-500 mt-2">{day.label}</span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* 科目凡例 */}
-            {getWeeklySubjects().length > 0 && (
-              <div className="flex flex-wrap gap-3 mt-4 pt-4 border-t">
-                {getWeeklySubjects().map((subj) => (
-                  <div key={subj} className="flex items-center gap-1">
-                    <span
-                      className="w-3 h-3 rounded-sm"
-                      style={{ backgroundColor: getSubjectColor(subj) }}
-                    />
-                    <span className="text-xs text-gray-600">{getSubjectLabel(subj)}</span>
-                  </div>
-                ))}
-              </div>
-            )}
           </CardContent>
         </Card>
 
