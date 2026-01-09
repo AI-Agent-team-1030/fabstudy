@@ -111,20 +111,37 @@ export default function TeacherMessagesPage() {
 
     setSending(true);
     try {
-      const student = students.find((s) => s.id === selectedStudent);
-      if (!student) return;
+      if (selectedStudent === "all") {
+        // 一斉送信: 全生徒に送信
+        for (const student of students) {
+          await addDoc(collection(db, "messages"), {
+            toUserId: student.id,
+            toUserName: student.name,
+            fromUserId: user.id,
+            fromUserName: user.name,
+            content: messageContent.trim(),
+            createdAt: Timestamp.now(),
+            read: false,
+          });
+        }
+        toast.success(`${students.length}人に一斉送信しました`);
+      } else {
+        // 個別送信
+        const student = students.find((s) => s.id === selectedStudent);
+        if (!student) return;
 
-      await addDoc(collection(db, "messages"), {
-        toUserId: selectedStudent,
-        toUserName: student.name,
-        fromUserId: user.id,
-        fromUserName: user.name,
-        content: messageContent.trim(),
-        createdAt: Timestamp.now(),
-        read: false,
-      });
+        await addDoc(collection(db, "messages"), {
+          toUserId: selectedStudent,
+          toUserName: student.name,
+          fromUserId: user.id,
+          fromUserName: user.name,
+          content: messageContent.trim(),
+          createdAt: Timestamp.now(),
+          read: false,
+        });
+        toast.success("メッセージを送信しました");
+      }
 
-      toast.success("メッセージを送信しました");
       setShowDialog(false);
       setSelectedStudent("");
       setMessageContent("");
@@ -248,6 +265,10 @@ export default function TeacherMessagesPage() {
                     <SelectValue placeholder="生徒を選択" />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="all" className="text-purple-600 font-medium">
+                      📢 全員に一斉送信（{students.length}人）
+                    </SelectItem>
+                    <div className="border-t my-1" />
                     {students.map((student) => (
                       <SelectItem key={student.id} value={student.id}>
                         {student.name}
