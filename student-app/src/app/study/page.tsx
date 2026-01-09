@@ -90,6 +90,7 @@ export default function StudyPage() {
   ]);
   const [submittingExam, setSubmittingExam] = useState(false);
   const [exams, setExams] = useState<any[]>([]);
+  const [expandedExams, setExpandedExams] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (!loading && !user) {
@@ -264,7 +265,7 @@ export default function StudyPage() {
 
   // 模試ごとにグループ化
   const groupedExams = () => {
-    const groups: { [key: string]: { examName: string; examDate: any; examType: string; subjects: any[] } } = {};
+    const groups: { [key: string]: { key: string; examName: string; examDate: any; examType: string; subjects: any[] } } = {};
 
     exams.forEach((exam) => {
       const dateStr = formatDate(exam.examDate);
@@ -272,6 +273,7 @@ export default function StudyPage() {
 
       if (!groups[key]) {
         groups[key] = {
+          key,
           examName: exam.examName,
           examDate: exam.examDate,
           examType: exam.examType,
@@ -298,6 +300,18 @@ export default function StudyPage() {
     return subjectEntries.some(entry => {
       const finalSubject = entry.subject === "other" ? entry.customSubject : entry.subject;
       return finalSubject && entry.score;
+    });
+  };
+
+  const toggleExamExpand = (key: string) => {
+    setExpandedExams((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
     });
   };
 
@@ -563,7 +577,7 @@ export default function StudyPage() {
                             <SelectValue placeholder="科目を選択" />
                           </SelectTrigger>
                           <SelectContent>
-                            {SUBJECTS.map((s) => (
+                            {getSubjectsByGrade(user.grade).map((s) => (
                               <SelectItem key={s.key} value={s.key}>
                                 {s.label}
                               </SelectItem>
@@ -640,45 +654,57 @@ export default function StudyPage() {
                     まだ記録がありません
                   </p>
                 ) : (
-                  <div className="space-y-4 max-h-[400px] overflow-y-auto">
-                    {groupedExams().slice(0, 5).map((group, index) => (
-                      <div
-                        key={index}
-                        className="p-4 bg-gray-50 rounded-lg"
-                      >
-                        <div className="flex justify-between items-center mb-3 pb-2 border-b">
-                          <div>
-                            <p className="font-bold">{group.examName}</p>
-                            <p className="text-sm text-gray-500">
-                              {formatDate(group.examDate)}
-                            </p>
-                          </div>
-                          <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded">
-                            {group.examType === "mock" ? "模試" : "定期テスト"}
-                          </span>
-                        </div>
-                        <div className="space-y-1">
-                          {group.subjects.map((subj, subIndex) => (
-                            <div
-                              key={subIndex}
-                              className="flex justify-between items-center py-1"
-                            >
-                              <span className="text-sm text-gray-700">{getSubjectLabel(subj.subject)}</span>
-                              <div className="flex items-center gap-2">
-                                <span className="font-bold text-blue-600">
-                                  {subj.score}/{subj.maxScore}
-                                </span>
-                                {subj.deviation && (
-                                  <span className="text-xs text-gray-500">
-                                    偏差値{subj.deviation}
-                                  </span>
-                                )}
+                  <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                    {groupedExams().map((group) => {
+                      const isExpanded = expandedExams.has(group.key);
+                      return (
+                        <div
+                          key={group.key}
+                          className="bg-gray-50 rounded-lg overflow-hidden"
+                        >
+                          <button
+                            type="button"
+                            onClick={() => toggleExamExpand(group.key)}
+                            className="w-full p-3 flex justify-between items-center hover:bg-gray-100 transition-colors"
+                          >
+                            <div className="flex items-center gap-2">
+                              <span className="text-lg">{isExpanded ? "▼" : "▶"}</span>
+                              <div className="text-left">
+                                <p className="font-bold">{group.examName}</p>
+                                <p className="text-sm text-gray-500">
+                                  {formatDate(group.examDate)} · {group.subjects.length}科目
+                                </p>
                               </div>
                             </div>
-                          ))}
+                            <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded">
+                              {group.examType === "mock" ? "模試" : "定期テスト"}
+                            </span>
+                          </button>
+                          {isExpanded && (
+                            <div className="px-4 pb-3 space-y-1 border-t">
+                              {group.subjects.map((subj, subIndex) => (
+                                <div
+                                  key={subIndex}
+                                  className="flex justify-between items-center py-2"
+                                >
+                                  <span className="text-sm text-gray-700">{getSubjectLabel(subj.subject)}</span>
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-bold text-blue-600">
+                                      {subj.score}/{subj.maxScore}
+                                    </span>
+                                    {subj.deviation && (
+                                      <span className="text-xs text-gray-500">
+                                        偏差値{subj.deviation}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </CardContent>
