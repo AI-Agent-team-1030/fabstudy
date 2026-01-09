@@ -51,6 +51,8 @@ export const SUBJECTS: { key: string; label: string; category?: string; levels: 
 
   // 高校生向け - 国語
   { key: "japanese", label: "国語", category: "国語", levels: ["high"] },
+  { key: "classics", label: "古典", category: "国語", levels: ["high"] },
+  { key: "kanbun", label: "漢文", category: "国語", levels: ["high"] },
 
   // 高校生向け - 理科
   { key: "physics", label: "物理", category: "理科", levels: ["high"] },

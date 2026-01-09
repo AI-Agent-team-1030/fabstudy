@@ -39,6 +39,7 @@ export function Header({ variant = "student" }: HeaderProps) {
     return [
       { href: "/dashboard", label: "ダッシュボード" },
       { href: "/study", label: "学習記録" },
+      { href: "/tasks", label: "目標" },
       { href: "/exams", label: "テスト記録" },
       { href: "/messages", label: "メッセージ" },
     ];
