@@ -654,6 +654,34 @@ export default function StudentDetailPage() {
           </CardContent>
         </Card>
 
+        {/* 目標・タスク一覧 */}
+        <Card className="mb-6">
+          <CardHeader>
+            <div className="flex justify-between items-center">
+              <div>
+                <CardTitle>目標とタスク</CardTitle>
+                <p className="text-sm text-gray-500">クリックで展開・編集できます</p>
+              </div>
+              <Button
+                onClick={() => setAddingTo({ parentId: null, level: "goal" })}
+              >
+                + GOALを追加
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {goals.length === 0 ? (
+              <p className="text-gray-500 text-center py-4">
+                まだ目標が設定されていません
+              </p>
+            ) : (
+              <div className="space-y-4">
+                {goals.map((goal) => renderTask(goal))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         {/* 週間棒グラフ */}
         <Card className="mb-6">
           <CardHeader className="pb-2">
@@ -741,34 +769,6 @@ export default function StudentDetailPage() {
                 </div>
               )}
             </div>
-          </CardContent>
-        </Card>
-
-        {/* 目標・タスク一覧 */}
-        <Card className="mb-6">
-          <CardHeader>
-            <div className="flex justify-between items-center">
-              <div>
-                <CardTitle>目標とタスク</CardTitle>
-                <p className="text-sm text-gray-500">クリックで展開・編集できます</p>
-              </div>
-              <Button
-                onClick={() => setAddingTo({ parentId: null, level: "goal" })}
-              >
-                + GOALを追加
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {goals.length === 0 ? (
-              <p className="text-gray-500 text-center py-4">
-                まだ目標が設定されていません
-              </p>
-            ) : (
-              <div className="space-y-4">
-                {goals.map((goal) => renderTask(goal))}
-              </div>
-            )}
           </CardContent>
         </Card>
 
