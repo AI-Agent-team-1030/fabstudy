@@ -45,7 +45,7 @@ interface Task {
 }
 
 const LEVEL_CONFIG: Record<TaskLevel, { label: string; rubyLabel: string; color: string; bgColor: string; childLevel: TaskLevel | null }> = {
-  goal: { label: "もくひょう", rubyLabel: "目標", color: "bg-indigo-600", bgColor: "bg-indigo-50", childLevel: "large" },
+  goal: { label: "やりたいこと", rubyLabel: "やりたいこと", color: "bg-indigo-600", bgColor: "bg-indigo-50", childLevel: "large" },
   large: { label: "おおきなタスク", rubyLabel: "大タスク", color: "bg-blue-500", bgColor: "bg-blue-50", childLevel: "medium" },
   medium: { label: "ちゅうくらいタスク", rubyLabel: "中タスク", color: "bg-blue-400", bgColor: "bg-blue-50", childLevel: "small" },
   small: { label: "ちいさなタスク", rubyLabel: "小タスク", color: "bg-gray-400", bgColor: "bg-gray-50", childLevel: null },
@@ -423,20 +423,20 @@ export default function KidsTasksPage() {
 
       <main className="max-w-4xl mx-auto px-4 py-6">
         <h2 className="text-2xl font-bold text-gray-800 mb-6">
-          <ruby>目標<rt>もくひょう</rt></ruby>とタスク
+          やりたいことリスト
         </h2>
 
         {goals.length === 0 ? (
           <Card>
             <CardContent className="py-8 text-center">
               <p className="text-gray-500 text-xl mb-4">
-                まだ<ruby>目標<rt>もくひょう</rt></ruby>がないよ
+                まだやりたいことがないよ
               </p>
               <Button
                 className="text-lg py-6 px-8"
                 onClick={() => setAddingTo({ parentId: null, level: "goal" })}
               >
-                + <ruby>目標<rt>もくひょう</rt></ruby>をついか
+                + やりたいことをついか
               </Button>
             </CardContent>
           </Card>
@@ -449,7 +449,7 @@ export default function KidsTasksPage() {
               className="w-full border-dashed border-2 mt-4 py-6 text-lg"
               onClick={() => setAddingTo({ parentId: null, level: "goal" })}
             >
-              + <ruby>目標<rt>もくひょう</rt></ruby>をついか
+              + やりたいことをついか
             </Button>
           </>
         )}
