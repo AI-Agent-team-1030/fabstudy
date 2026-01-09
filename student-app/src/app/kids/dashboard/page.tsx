@@ -8,18 +8,41 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { db } from "@/lib/firebase";
 import { collection, query, where, getDocs, doc, getDoc, setDoc, Timestamp } from "firebase/firestore";
-import { getLevelFromExp, LEVEL_CONFIG, BADGES, UserGameData } from "@/types";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { getLevelFromExp, LEVEL_CONFIG, SUBJECTS } from "@/types";
+import { KidsBottomNav } from "@/components/common/KidsBottomNav";
+
+interface StudyLog {
+  id: string;
+  subject: string;
+  duration: number;
+  date: any;
+}
+
+// 科目ごとの色
+const SUBJECT_COLORS: Record<string, string> = {
+  kokugo: "#F97316",
+  sansu: "#3B82F6",
+  rika_elem: "#22C55E",
+  shakai_elem: "#92400E",
+  eigo_elem: "#EF4444",
+};
+
+const getSubjectColor = (subject: string): string => {
+  return SUBJECT_COLORS[subject] || "#6B7280";
+};
+
+const getSubjectLabel = (key: string) => {
+  return SUBJECTS.find((s) => s.key === key)?.label || key;
+};
 
 export default function KidsDashboardPage() {
   const { user, loading, logout } = useAuth();
   const router = useRouter();
-  const pathname = usePathname();
-  const [gameData, setGameData] = useState<UserGameData | null>(null);
   const [totalMinutes, setTotalMinutes] = useState(0);
   const [todayMinutes, setTodayMinutes] = useState(0);
   const [weeklyMinutes, setWeeklyMinutes] = useState(0);
+  const [currentStreak, setCurrentStreak] = useState(0);
+  const [logs, setLogs] = useState<StudyLog[]>([]);
   const [loadingData, setLoadingData] = useState(true);
 
   const handleLogout = () => {
@@ -45,7 +68,6 @@ export default function KidsDashboardPage() {
   const loadData = async () => {
     if (!user) return;
     try {
-      // 学習ログを取得
       const logsRef = collection(db, "studyLogs");
       const q = query(logsRef, where("userId", "==", user.id));
       const snapshot = await getDocs(q);
@@ -64,6 +86,7 @@ export default function KidsDashboardPage() {
       weekStart.setDate(todayDate.getDate() + mondayOffset);
 
       const uniqueDates = new Set<string>();
+      const logsData: StudyLog[] = [];
 
       snapshot.docs.forEach((doc) => {
         const data = doc.data();
@@ -82,22 +105,23 @@ export default function KidsDashboardPage() {
         if (logDateOnly >= weekStart) {
           weekly += data.duration || 0;
         }
+
+        logsData.push({
+          id: doc.id,
+          subject: data.subject,
+          duration: data.duration,
+          date: data.date,
+        });
       });
 
       setTotalMinutes(total);
       setTodayMinutes(today);
       setWeeklyMinutes(weekly);
-
-      // ゲームデータを取得または作成
-      const gameDataRef = doc(db, "userGameData", user.id);
-      const gameDataSnap = await getDoc(gameDataRef);
-
-      // 経験値を計算（勉強時間 × 2 + 記録数 × 10）
-      const totalExp = total * LEVEL_CONFIG.expPerMinute + snapshot.docs.length * LEVEL_CONFIG.expPerRecord;
+      setLogs(logsData);
 
       // 連続記録を計算
       const sortedDates = Array.from(uniqueDates).sort().reverse();
-      let currentStreak = 0;
+      let streak = 0;
       let checkDate = new Date();
       checkDate.setHours(0, 0, 0, 0);
 
@@ -107,37 +131,13 @@ export default function KidsDashboardPage() {
         const diff = Math.floor((checkDate.getTime() - d.getTime()) / (1000 * 60 * 60 * 24));
 
         if (diff === 0 || diff === 1) {
-          currentStreak++;
+          streak++;
           checkDate = d;
         } else {
           break;
         }
       }
-
-      // 獲得バッジをチェック
-      const earnedBadges: string[] = [];
-      BADGES.forEach((badge) => {
-        if (badge.condition === "streak" && currentStreak >= badge.threshold) {
-          earnedBadges.push(badge.id);
-        } else if (badge.condition === "total_time" && total >= badge.threshold) {
-          earnedBadges.push(badge.id);
-        }
-      });
-
-      const newGameData: UserGameData = {
-        id: user.id,
-        userId: user.id,
-        totalExp,
-        earnedBadges,
-        currentStreak,
-        longestStreak: Math.max(currentStreak, gameDataSnap.exists() ? gameDataSnap.data().longestStreak || 0 : 0),
-        lastRecordDate: sortedDates[0] || "",
-        updatedAt: Timestamp.now(),
-      };
-
-      // Firestoreに保存
-      await setDoc(gameDataRef, newGameData);
-      setGameData(newGameData);
+      setCurrentStreak(streak);
 
     } catch (error) {
       console.error("Failed to load data:", error);
@@ -146,18 +146,78 @@ export default function KidsDashboardPage() {
     }
   };
 
+  // 時間のフォーマット（漢字＋ルビ）
   const formatTime = (minutes: number) => {
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
-    if (hours === 0) return `${mins}ふん`;
-    if (mins === 0) return `${hours}じかん`;
-    return `${hours}じかん${mins}ふん`;
+    if (hours === 0) return <>{mins}<ruby>分<rt>ふん</rt></ruby></>;
+    if (mins === 0) return <>{hours}<ruby>時間<rt>じかん</rt></ruby></>;
+    return <>{hours}<ruby>時間<rt>じかん</rt></ruby>{mins}<ruby>分<rt>ふん</rt></ruby></>;
   };
+
+  // トロフィー数を計算（1時間 = 1トロフィー）
+  const getTrophyCount = () => {
+    return Math.floor(totalMinutes / 60);
+  };
+
+  // 週間データ（日付×科目）- 棒グラフ用
+  const getWeeklyData = () => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const days: { dateKey: string; label: string; subjects: Record<string, number> }[] = [];
+
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(d.getDate() - i);
+      const dateKey = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+      days.push({
+        dateKey,
+        label: `${d.getMonth() + 1}/${d.getDate()}`,
+        subjects: {},
+      });
+    }
+
+    logs.forEach((log) => {
+      const logDate = log.date?.toDate?.() || new Date(log.date);
+      const logDateKey = `${logDate.getFullYear()}-${logDate.getMonth()}-${logDate.getDate()}`;
+
+      const day = days.find((d) => d.dateKey === logDateKey);
+      if (day) {
+        const subj = log.subject || "other";
+        day.subjects[subj] = (day.subjects[subj] || 0) + (log.duration || 0);
+      }
+    });
+
+    return days;
+  };
+
+  // 週間データに含まれる科目を取得
+  const getWeeklySubjects = () => {
+    const subjects = new Set<string>();
+    weeklyData.forEach((day) => {
+      Object.keys(day.subjects).forEach((subj) => subjects.add(subj));
+    });
+    return Array.from(subjects);
+  };
+
+  const weeklyData = getWeeklyData();
+  const maxDailyMinutes = Math.max(
+    ...weeklyData.map((d) =>
+      Object.values(d.subjects).reduce((sum, v) => sum + v, 0)
+    ),
+    60
+  );
+
+  // 経験値とレベル
+  const totalExp = totalMinutes * LEVEL_CONFIG.expPerMinute + logs.length * LEVEL_CONFIG.expPerRecord;
+  const levelInfo = getLevelFromExp(totalExp);
+  const expProgress = levelInfo.nextLevelExp > 0 ? (levelInfo.currentExp / levelInfo.nextLevelExp) * 100 : 0;
 
   if (loading || loadingData) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <p>よみこみちゅう...</p>
+        <p className="text-xl"><ruby>読<rt>よ</rt></ruby>み<ruby>込<rt>こ</rt></ruby>み<ruby>中<rt>ちゅう</rt></ruby>...</p>
       </div>
     );
   }
@@ -166,11 +226,10 @@ export default function KidsDashboardPage() {
     return null;
   }
 
-  const levelInfo = gameData ? getLevelFromExp(gameData.totalExp) : { level: 1, currentExp: 0, nextLevelExp: 100 };
-  const expProgress = levelInfo.nextLevelExp > 0 ? (levelInfo.currentExp / levelInfo.nextLevelExp) * 100 : 0;
+  const trophyCount = getTrophyCount();
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
+    <div className="min-h-screen bg-gray-50 pb-24">
       {/* ヘッダー */}
       <header className="bg-blue-700 text-white shadow-md">
         <div className="max-w-7xl mx-auto px-4 py-3">
@@ -228,7 +287,7 @@ export default function KidsDashboardPage() {
                 <span><ruby>経験値<rt>けいけんち</rt></ruby></span>
                 <span>{levelInfo.currentExp} / {levelInfo.nextLevelExp}</span>
               </div>
-              <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
+              <div className="h-4 bg-gray-200 rounded-full overflow-hidden">
                 <div
                   className="h-full bg-blue-500 transition-all duration-500"
                   style={{ width: `${expProgress}%` }}
@@ -238,7 +297,7 @@ export default function KidsDashboardPage() {
           </CardContent>
         </Card>
 
-        {/* 統計カード */}
+        {/* 学習時間サマリー */}
         <Card className="mb-6">
           <CardHeader className="pb-2">
             <CardTitle className="text-lg">
@@ -248,7 +307,7 @@ export default function KidsDashboardPage() {
           <CardContent className="p-0">
             <div className="grid grid-cols-3 border-y bg-gray-100">
               <div className="text-center py-2 border-r">
-                <div className="text-sm text-gray-500">きょう</div>
+                <div className="text-sm text-gray-500"><ruby>今日<rt>きょう</rt></ruby></div>
               </div>
               <div className="text-center py-2 border-r">
                 <div className="text-sm text-gray-500">
@@ -266,7 +325,7 @@ export default function KidsDashboardPage() {
                 <span className="text-xl font-bold text-blue-600">{formatTime(todayMinutes)}</span>
               </div>
               <div className="text-center py-4 border-r">
-                <span className="text-xl font-bold text-orange-500">{gameData?.currentStreak || 0}にち</span>
+                <span className="text-xl font-bold text-orange-500">{currentStreak}<ruby>日<rt>にち</rt></ruby></span>
               </div>
               <div className="text-center py-4">
                 <span className="text-xl font-bold">{formatTime(totalMinutes)}</span>
@@ -275,59 +334,103 @@ export default function KidsDashboardPage() {
           </CardContent>
         </Card>
 
-        {/* バッジコレクション */}
+        {/* 週間棒グラフ */}
+        <Card className="mb-6">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg">
+              <ruby>今週<rt>こんしゅう</rt></ruby>の<ruby>学習<rt>がくしゅう</rt></ruby><ruby>記録<rt>きろく</rt></ruby>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-4">
+            <div className="flex gap-2 h-48">
+              <div className="flex flex-col justify-between text-xs text-gray-500 pr-2 pb-6">
+                <span>{Math.ceil(maxDailyMinutes / 60)}<ruby>時間<rt>じかん</rt></ruby></span>
+                <span>{Math.ceil(maxDailyMinutes / 120)}<ruby>時間<rt>じかん</rt></ruby></span>
+                <span>0</span>
+              </div>
+              <div className="flex-1 flex items-end gap-2">
+                {weeklyData.map((day, index) => {
+                  const dayTotal = Object.values(day.subjects).reduce((sum, v) => sum + v, 0);
+                  const maxHeight = 160;
+                  const barHeight = maxDailyMinutes > 0 ? (dayTotal / maxDailyMinutes) * maxHeight : 0;
+
+                  return (
+                    <div key={index} className="flex-1 flex flex-col items-center">
+                      <div className="w-full flex flex-col justify-end" style={{ height: `${maxHeight}px` }}>
+                        <div
+                          className="w-full flex flex-col-reverse rounded-t overflow-hidden"
+                          style={{ height: `${barHeight}px` }}
+                        >
+                          {Object.entries(day.subjects).map(([subj, minutes]) => {
+                            const segmentHeight = dayTotal > 0 ? (minutes / dayTotal) * barHeight : 0;
+                            return (
+                              <div
+                                key={subj}
+                                style={{
+                                  height: `${segmentHeight}px`,
+                                  backgroundColor: getSubjectColor(subj),
+                                }}
+                              />
+                            );
+                          })}
+                        </div>
+                      </div>
+                      <span className="text-xs text-gray-500 mt-2">{day.label}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* 科目凡例 */}
+            {getWeeklySubjects().length > 0 && (
+              <div className="flex flex-wrap gap-3 mt-4 pt-4 border-t">
+                {getWeeklySubjects().map((subj) => (
+                  <div key={subj} className="flex items-center gap-1">
+                    <span
+                      className="w-3 h-3 rounded-sm"
+                      style={{ backgroundColor: getSubjectColor(subj) }}
+                    />
+                    <span className="text-xs text-gray-600">{getSubjectLabel(subj)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* トロフィー */}
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-lg">バッジ</CardTitle>
+            <CardTitle className="text-lg">
+              <ruby>獲得<rt>かくとく</rt></ruby>トロフィー
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            {/* バッジの説明 */}
-            <div className="bg-blue-50 rounded-lg p-3 mb-4 text-sm text-blue-800">
-              <p className="font-bold mb-1">バッジってなに？</p>
+            <div className="bg-yellow-50 rounded-lg p-4 mb-4 text-sm text-yellow-800">
+              <p className="font-bold mb-1">トロフィーのもらい<ruby>方<rt>かた</rt></ruby></p>
               <p>
-                <ruby>勉強<rt>べんきょう</rt></ruby>をがんばると、ごほうびにバッジがもらえるよ！
-                <ruby>毎日<rt>まいにち</rt></ruby><ruby>続<rt>つづ</rt></ruby>けたり、たくさん<ruby>勉強<rt>べんきょう</rt></ruby>するともらえるバッジが<ruby>増<rt>ふ</rt></ruby>えていくよ。
+                1<ruby>時間<rt>じかん</rt></ruby><ruby>勉強<rt>べんきょう</rt></ruby>すると、トロフィーが1<ruby>個<rt>こ</rt></ruby>もらえるよ！
               </p>
             </div>
-            <div className="grid grid-cols-5 gap-3">
-              {BADGES.map((badge) => {
-                const isEarned = gameData?.earnedBadges.includes(badge.id);
-                return (
-                  <div
-                    key={badge.id}
-                    className={`text-2xl text-center p-2 rounded-lg transition-all ${
-                      isEarned
-                        ? "bg-yellow-100"
-                        : "bg-gray-100 grayscale opacity-40"
-                    }`}
-                    title={isEarned ? badge.name : "???"}
-                  >
-                    {badge.icon}
-                  </div>
-                );
-              })}
+
+            <div className="flex items-center justify-center gap-4 py-4">
+              <span className="text-6xl">🏆</span>
+              <div className="text-center">
+                <span className="text-4xl font-bold text-yellow-600">{trophyCount}</span>
+                <span className="text-xl text-gray-600 ml-1"><ruby>個<rt>こ</rt></ruby></span>
+              </div>
             </div>
-            <div className="text-center mt-3 text-sm text-gray-500">
-              {gameData?.earnedBadges.length || 0} / {BADGES.length} こ<ruby>獲得<rt>かくとく</rt></ruby>
+
+            <div className="text-center text-sm text-gray-500 border-t pt-3">
+              <ruby>合計<rt>ごうけい</rt></ruby>{formatTime(totalMinutes)}<ruby>勉強<rt>べんきょう</rt></ruby>
+              → <ruby>次<rt>つぎ</rt></ruby>のトロフィーまで<ruby>あと<rt></rt></ruby>{60 - (totalMinutes % 60)}<ruby>分<rt>ふん</rt></ruby>
             </div>
           </CardContent>
         </Card>
       </main>
 
-      {/* 下部ナビゲーション */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50">
-        <div className="flex justify-around items-center h-16 max-w-lg mx-auto">
-          <Link href="/kids/dashboard" className={`flex items-center justify-center w-full h-full transition-colors ${pathname === "/kids/dashboard" ? "text-blue-600 font-bold" : "text-gray-500"}`}>
-            <span className="text-sm">つみあげひょう</span>
-          </Link>
-          <Link href="/kids/wishlist" className={`flex items-center justify-center w-full h-full transition-colors ${pathname === "/kids/wishlist" ? "text-blue-600 font-bold" : "text-gray-500"}`}>
-            <span className="text-sm">やりたいことリスト</span>
-          </Link>
-          <Link href="/kids/messages" className={`flex items-center justify-center w-full h-full transition-colors ${pathname === "/kids/messages" ? "text-blue-600 font-bold" : "text-gray-500"}`}>
-            <span className="text-sm">メッセージ</span>
-          </Link>
-        </div>
-      </nav>
+      <KidsBottomNav />
     </div>
   );
 }

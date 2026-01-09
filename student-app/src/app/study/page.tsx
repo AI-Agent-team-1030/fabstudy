@@ -83,6 +83,7 @@ export default function StudyPage() {
 
   // テスト記録のstate
   const [examType, setExamType] = useState("");
+  const [regularExamSubType, setRegularExamSubType] = useState(""); // 中間、期末、その他
   const [examName, setExamName] = useState("");
   const [examDate, setExamDate] = useState(new Date().toISOString().split("T")[0]);
   const [subjectEntries, setSubjectEntries] = useState<SubjectEntry[]>([
@@ -199,7 +200,20 @@ export default function StudyPage() {
 
   const handleExamSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user || !examType || !examName) return;
+    if (!user || !examType) return;
+    // 模試の場合はテスト名が必須
+    if (examType === "mock" && !examName) return;
+    // 定期テストの場合はサブタイプが必須、その他の場合はテスト名も必須
+    if (examType === "regular" && !regularExamSubType) return;
+    if (examType === "regular" && regularExamSubType === "other" && !examName) return;
+
+    // テスト名を決定
+    let finalExamName = examName;
+    if (examType === "regular") {
+      if (regularExamSubType === "midterm") finalExamName = "中間テスト";
+      else if (regularExamSubType === "final") finalExamName = "期末テスト";
+      // その他の場合はexamNameをそのまま使用
+    }
 
     const validEntries = subjectEntries.filter(entry => {
       const finalSubject = entry.subject === "other" ? entry.customSubject : entry.subject;
@@ -220,7 +234,7 @@ export default function StudyPage() {
         await addDoc(examsRef, {
           userId: user.id,
           examType,
-          examName,
+          examName: finalExamName,
           subject: finalSubject,
           score: Number(entry.score),
           maxScore: Number(entry.maxScore),
@@ -233,6 +247,7 @@ export default function StudyPage() {
 
       toast.success(`${validEntries.length}科目を記録しました！`);
       setExamType("");
+      setRegularExamSubType("");
       setExamName("");
       setSubjectEntries([
         { id: "1", subject: "", customSubject: "", score: "", maxScore: "100", deviation: "" }
@@ -297,7 +312,14 @@ export default function StudyPage() {
   };
 
   const canSubmitExam = () => {
-    if (!examType || !examName) return false;
+    if (!examType) return false;
+    // 模試の場合はテスト名が必須
+    if (examType === "mock" && !examName) return false;
+    // 定期テストの場合はサブタイプが必須、「その他」の場合はテスト名も必須
+    if (examType === "regular") {
+      if (!regularExamSubType) return false;
+      if (regularExamSubType === "other" && !examName) return false;
+    }
     return subjectEntries.some(entry => {
       const finalSubject = entry.subject === "other" ? entry.customSubject : entry.subject;
       return finalSubject && entry.score;
@@ -515,7 +537,11 @@ export default function StudyPage() {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label>テスト種類</Label>
-                      <Select value={examType} onValueChange={setExamType}>
+                      <Select value={examType} onValueChange={(v) => {
+                        setExamType(v);
+                        setRegularExamSubType("");
+                        setExamName("");
+                      }}>
                         <SelectTrigger>
                           <SelectValue placeholder="種類を選択" />
                         </SelectTrigger>
@@ -535,14 +561,43 @@ export default function StudyPage() {
                     </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label>テスト名</Label>
-                    <Input
-                      placeholder="例: 第1回駿台全国模試"
-                      value={examName}
-                      onChange={(e) => setExamName(e.target.value)}
-                    />
-                  </div>
+                  {examType === "mock" && (
+                    <div className="space-y-2">
+                      <Label>テスト名</Label>
+                      <Input
+                        placeholder="例: 第1回駿台全国模試"
+                        value={examName}
+                        onChange={(e) => setExamName(e.target.value)}
+                      />
+                    </div>
+                  )}
+
+                  {examType === "regular" && (
+                    <div className="space-y-2">
+                      <Label>テスト種別</Label>
+                      <Select value={regularExamSubType} onValueChange={setRegularExamSubType}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="種別を選択" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="midterm">中間テスト</SelectItem>
+                          <SelectItem value="final">期末テスト</SelectItem>
+                          <SelectItem value="other">その他</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+
+                  {examType === "regular" && regularExamSubType === "other" && (
+                    <div className="space-y-2">
+                      <Label>テスト名</Label>
+                      <Input
+                        placeholder="例: 実力テスト"
+                        value={examName}
+                        onChange={(e) => setExamName(e.target.value)}
+                      />
+                    </div>
+                  )}
 
                   {/* 科目リスト */}
                   <div className="space-y-3">

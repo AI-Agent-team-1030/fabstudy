@@ -20,8 +20,7 @@ import {
 import { REPLY_TYPES } from "@/types";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { KidsBottomNav } from "@/components/common/KidsBottomNav";
 
 interface Message {
   id: string;
@@ -43,7 +42,6 @@ interface MessageReceipt {
 export default function KidsMessagesPage() {
   const { user, loading, logout } = useAuth();
   const router = useRouter();
-  const pathname = usePathname();
   const [messages, setMessages] = useState<(Message & { receipt?: MessageReceipt })[]>([]);
   const [loadingMessages, setLoadingMessages] = useState(true);
   const [selectedMessage, setSelectedMessage] = useState<(Message & { receipt?: MessageReceipt }) | null>(null);
@@ -290,20 +288,7 @@ export default function KidsMessagesPage() {
         </div>
       )}
 
-      {/* 下部ナビゲーション */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-40">
-        <div className="flex justify-around items-center h-16 max-w-lg mx-auto">
-          <Link href="/kids/dashboard" className={`flex items-center justify-center w-full h-full transition-colors ${pathname === "/kids/dashboard" ? "text-blue-600 font-bold" : "text-gray-500"}`}>
-            <span className="text-sm">つみあげひょう</span>
-          </Link>
-          <Link href="/kids/wishlist" className={`flex items-center justify-center w-full h-full transition-colors ${pathname === "/kids/wishlist" ? "text-blue-600 font-bold" : "text-gray-500"}`}>
-            <span className="text-sm">やりたいことリスト</span>
-          </Link>
-          <Link href="/kids/messages" className={`flex items-center justify-center w-full h-full transition-colors ${pathname === "/kids/messages" ? "text-blue-600 font-bold" : "text-gray-500"}`}>
-            <span className="text-sm">メッセージ</span>
-          </Link>
-        </div>
-      </nav>
+      <KidsBottomNav />
     </div>
   );
 }
