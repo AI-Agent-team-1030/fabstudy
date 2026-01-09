@@ -356,8 +356,8 @@ export default function TasksPage() {
               </Button>
             </div>
 
-            {/* TASK(小)はチェックボックス、それ以外はプログレスバー */}
-            {task.level === "small" ? (
+            {/* 子タスクがない場合はチェックボックス、ある場合はプログレスバー */}
+            {children.length === 0 ? (
               <div className="mt-3 flex items-center gap-3">
                 <button
                   onClick={() => task.status === "completed" ? handleUncomplete(task.id) : handleComplete(task.id)}
