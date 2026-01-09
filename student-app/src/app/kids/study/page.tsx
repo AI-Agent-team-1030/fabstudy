@@ -3,18 +3,27 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { db } from "@/lib/firebase";
-import { collection, addDoc, query, where, getDocs, Timestamp, orderBy, limit } from "firebase/firestore";
+import { collection, addDoc, query, where, getDocs, Timestamp } from "firebase/firestore";
 import { getSubjectsByGrade } from "@/types";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 export default function KidsStudyPage() {
-  const { user, loading } = useAuth();
+  const { user, loading, logout } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const [subject, setSubject] = useState("");
@@ -24,6 +33,11 @@ export default function KidsStudyPage() {
   const [recentLogs, setRecentLogs] = useState<any[]>([]);
 
   const subjects = user ? getSubjectsByGrade(user.grade) : [];
+
+  const handleLogout = () => {
+    logout();
+    router.push("/login");
+  };
 
   useEffect(() => {
     if (!loading && !user) {
@@ -44,10 +58,7 @@ export default function KidsStudyPage() {
     if (!user) return;
     try {
       const logsRef = collection(db, "studyLogs");
-      const q = query(
-        logsRef,
-        where("userId", "==", user.id)
-      );
+      const q = query(logsRef, where("userId", "==", user.id));
       const snapshot = await getDocs(q);
       const logs = snapshot.docs.map((doc) => ({
         id: doc.id,
@@ -64,7 +75,8 @@ export default function KidsStudyPage() {
     }
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     if (!user || !subject || !duration) return;
 
     setSubmitting(true);
@@ -78,13 +90,13 @@ export default function KidsStudyPage() {
         createdAt: Timestamp.now(),
       });
 
-      toast.success("きろくしたよ！すごい！");
+      toast.success("記録しました！");
       setSubject("");
       setDuration("");
       loadRecentLogs();
     } catch (error) {
       console.error("Failed to add log:", error);
-      toast.error("きろくできなかった...");
+      toast.error("記録に失敗しました");
     } finally {
       setSubmitting(false);
     }
@@ -97,124 +109,122 @@ export default function KidsStudyPage() {
   const formatTime = (minutes: number) => {
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
-    if (hours === 0) return `${mins}ぷん`;
-    if (mins === 0) return `${hours}じかん`;
-    return `${hours}じかん${mins}ぷん`;
+    if (hours === 0) return `${mins}分`;
+    if (mins === 0) return `${hours}時間`;
+    return `${hours}時間${mins}分`;
   };
 
   if (loading || !user) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-blue-100 to-green-100 flex items-center justify-center">
-        <p className="text-2xl">よみこみちゅう...</p>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <p>読み込み中...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-100 to-green-100 pb-24">
-      {/* ヘッダー */}
-      <div className="bg-gradient-to-r from-blue-400 to-green-400 p-4 shadow-lg">
-        <h1 className="text-2xl font-bold text-white text-center">
-          べんきょうをきろく
-        </h1>
-      </div>
-
-      <main className="max-w-lg mx-auto px-4 py-6 space-y-4">
-        {/* 記録フォーム */}
-        <Card className="bg-white/90 border-4 border-blue-400 shadow-xl">
-          <CardContent className="p-6 space-y-6">
-            {/* 科目選択 */}
-            <div>
-              <div className="text-lg font-bold text-gray-700 mb-3">なにをべんきょうした？</div>
-              <div className="grid grid-cols-3 gap-2">
-                {subjects.map((s) => (
-                  <button
-                    key={s.key}
-                    onClick={() => setSubject(s.key)}
-                    className={`p-3 rounded-xl text-center font-bold transition-all ${
-                      subject === s.key
-                        ? "bg-blue-500 text-white scale-105 shadow-lg"
-                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                    }`}
-                  >
-                    {s.label}
-                  </button>
-                ))}
-              </div>
+    <div className="min-h-screen bg-gray-50 pb-20">
+      {/* ヘッダー - 高校生版と同じスタイル */}
+      <header className="bg-blue-700 text-white shadow-md">
+        <div className="max-w-7xl mx-auto px-4 py-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <h1 className="font-bold text-lg">学習進捗管理</h1>
+              {user && (
+                <Badge variant="secondary" className="ml-2">
+                  {user.name}
+                </Badge>
+              )}
             </div>
-
-            {/* 時間入力 */}
-            <div>
-              <div className="text-lg font-bold text-gray-700 mb-3">どれくらいべんきょうした？</div>
-              <div className="grid grid-cols-4 gap-2">
-                {[15, 30, 45, 60].map((min) => (
-                  <button
-                    key={min}
-                    onClick={() => setDuration(String(min))}
-                    className={`p-3 rounded-xl text-center font-bold transition-all ${
-                      duration === String(min)
-                        ? "bg-green-500 text-white scale-105 shadow-lg"
-                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                    }`}
-                  >
-                    {min}ぷん
-                  </button>
-                ))}
-              </div>
-              <div className="mt-3 flex items-center gap-2">
-                <span className="text-gray-600">そのた:</span>
-                <Input
-                  type="number"
-                  placeholder="じかん"
-                  value={duration}
-                  onChange={(e) => setDuration(e.target.value)}
-                  className="w-24 text-center text-lg"
-                  min="1"
-                />
-                <span className="text-gray-600">ぷん</span>
-              </div>
-            </div>
-
-            {/* 日付 */}
-            <div>
-              <div className="text-lg font-bold text-gray-700 mb-2">いつべんきょうした？</div>
-              <Input
-                type="date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                className="text-lg"
-              />
-            </div>
-
-            {/* 記録ボタン */}
             <Button
-              onClick={handleSubmit}
-              disabled={submitting || !subject || !duration}
-              className="w-full h-16 text-2xl bg-gradient-to-r from-blue-500 to-green-500 hover:from-blue-600 hover:to-green-600 disabled:opacity-50"
+              variant="ghost"
+              onClick={handleLogout}
+              className="text-white hover:bg-white/20"
             >
-              {submitting ? "きろくちゅう..." : "きろくする！"}
+              ログアウト
             </Button>
+          </div>
+        </div>
+      </header>
+
+      <main className="max-w-4xl mx-auto px-4 py-6 space-y-4">
+        {/* 記録フォーム */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg">勉強を記録する</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="space-y-2">
+                  <Label>科目</Label>
+                  <Select value={subject} onValueChange={setSubject}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="科目を選択" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {subjects.map((s) => (
+                        <SelectItem key={s.key} value={s.key}>
+                          {s.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>勉強時間（分）</Label>
+                  <Input
+                    type="number"
+                    placeholder="30"
+                    value={duration}
+                    onChange={(e) => setDuration(e.target.value)}
+                    min="1"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>日付</Label>
+                  <Input
+                    type="date"
+                    value={date}
+                    onChange={(e) => setDate(e.target.value)}
+                  />
+                </div>
+                <div className="flex items-end">
+                  <Button
+                    type="submit"
+                    className="w-full"
+                    disabled={submitting || !subject || !duration}
+                  >
+                    {submitting ? "記録中..." : "記録する"}
+                  </Button>
+                </div>
+              </div>
+            </form>
           </CardContent>
         </Card>
 
         {/* 最近の記録 */}
-        <Card className="bg-white/90 border-4 border-green-400 shadow-xl">
-          <CardContent className="p-4">
-            <div className="text-lg font-bold text-gray-700 mb-3">さいきんのきろく</div>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">最近の記録</CardTitle>
+          </CardHeader>
+          <CardContent>
             {recentLogs.length === 0 ? (
-              <p className="text-center text-gray-500 py-4">まだきろくがないよ</p>
+              <p className="text-gray-500 text-center py-4">まだ記録がありません</p>
             ) : (
               <div className="space-y-2">
                 {recentLogs.map((log) => (
                   <div
                     key={log.id}
-                    className="flex justify-between items-center p-3 bg-green-50 rounded-xl"
+                    className="flex justify-between items-center p-3 bg-gray-50 rounded-lg"
                   >
                     <div className="flex items-center gap-2">
-                      <span className="text-2xl">📚</span>
-                      <span className="font-bold">{getSubjectLabel(log.subject)}</span>
+                      <span className="font-medium">{getSubjectLabel(log.subject)}</span>
+                      <span className="text-gray-500 text-sm">
+                        {log.date?.toDate?.().toLocaleDateString("ja-JP")}
+                      </span>
                     </div>
-                    <span className="text-green-600 font-bold">{formatTime(log.duration)}</span>
+                    <span className="text-blue-600 font-bold">{formatTime(log.duration)}</span>
                   </div>
                 ))}
               </div>
@@ -224,23 +234,19 @@ export default function KidsStudyPage() {
       </main>
 
       {/* 下部ナビゲーション */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t-4 border-yellow-400 z-50">
-        <div className="flex justify-around items-center h-20 max-w-lg mx-auto">
-          <Link href="/kids/dashboard" className={`flex flex-col items-center ${pathname === "/kids/dashboard" ? "text-yellow-600 font-bold" : "text-gray-500"}`}>
-            <span className="text-2xl">🏠</span>
-            <span className="text-xs">ホーム</span>
+      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50">
+        <div className="flex justify-around items-center h-16 max-w-lg mx-auto">
+          <Link href="/kids/dashboard" className={`flex items-center justify-center w-full h-full transition-colors ${pathname === "/kids/dashboard" ? "text-blue-600 font-bold" : "text-gray-500"}`}>
+            <span className="text-sm">ホーム</span>
           </Link>
-          <Link href="/kids/study" className={`flex flex-col items-center ${pathname === "/kids/study" ? "text-yellow-600 font-bold" : "text-gray-500"}`}>
-            <span className="text-2xl">📝</span>
-            <span className="text-xs">きろく</span>
+          <Link href="/kids/study" className={`flex items-center justify-center w-full h-full transition-colors ${pathname === "/kids/study" ? "text-blue-600 font-bold" : "text-gray-500"}`}>
+            <span className="text-sm">学習記録</span>
           </Link>
-          <Link href="/kids/wishlist" className={`flex flex-col items-center ${pathname === "/kids/wishlist" ? "text-yellow-600 font-bold" : "text-gray-500"}`}>
-            <span className="text-2xl">📋</span>
-            <span className="text-xs">やりたいこと</span>
+          <Link href="/kids/wishlist" className={`flex items-center justify-center w-full h-full transition-colors ${pathname === "/kids/wishlist" ? "text-blue-600 font-bold" : "text-gray-500"}`}>
+            <span className="text-sm">目標</span>
           </Link>
-          <Link href="/kids/messages" className={`flex flex-col items-center ${pathname === "/kids/messages" ? "text-yellow-600 font-bold" : "text-gray-500"}`}>
-            <span className="text-2xl">💬</span>
-            <span className="text-xs">メッセージ</span>
+          <Link href="/kids/messages" className={`flex items-center justify-center w-full h-full transition-colors ${pathname === "/kids/messages" ? "text-blue-600 font-bold" : "text-gray-500"}`}>
+            <span className="text-sm">メッセージ</span>
           </Link>
         </div>
       </nav>

@@ -3,11 +3,12 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { db } from "@/lib/firebase";
 import { collection, addDoc, query, where, getDocs, doc, updateDoc, deleteDoc, Timestamp } from "firebase/firestore";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -21,12 +22,17 @@ interface WishItem {
 }
 
 export default function KidsWishlistPage() {
-  const { user, loading } = useAuth();
+  const { user, loading, logout } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const [items, setItems] = useState<WishItem[]>([]);
   const [newItem, setNewItem] = useState("");
   const [adding, setAdding] = useState(false);
+
+  const handleLogout = () => {
+    logout();
+    router.push("/login");
+  };
 
   useEffect(() => {
     if (!loading && !user) {
@@ -53,7 +59,6 @@ export default function KidsWishlistPage() {
         id: doc.id,
         ...doc.data(),
       })) as WishItem[];
-      // 未完了を先に、完了を後に
       itemsData.sort((a, b) => {
         if (a.completed !== b.completed) {
           return a.completed ? 1 : -1;
@@ -80,12 +85,12 @@ export default function KidsWishlistPage() {
         completed: false,
         createdAt: Timestamp.now(),
       });
-      toast.success("ついかしたよ！");
+      toast.success("追加しました");
       setNewItem("");
       loadItems();
     } catch (error) {
       console.error("Failed to add item:", error);
-      toast.error("ついかできなかった...");
+      toast.error("追加に失敗しました");
     } finally {
       setAdding(false);
     }
@@ -98,7 +103,7 @@ export default function KidsWishlistPage() {
         completed: !item.completed,
       });
       if (!item.completed) {
-        toast.success("やったね！できたね！");
+        toast.success("完了しました！");
       }
       loadItems();
     } catch (error) {
@@ -107,11 +112,11 @@ export default function KidsWishlistPage() {
   };
 
   const handleDelete = async (itemId: string) => {
-    if (!confirm("ほんとうにけす？")) return;
+    if (!confirm("削除しますか？")) return;
 
     try {
       await deleteDoc(doc(db, "wishlist", itemId));
-      toast.success("けしたよ");
+      toast.success("削除しました");
       loadItems();
     } catch (error) {
       console.error("Failed to delete item:", error);
@@ -120,8 +125,8 @@ export default function KidsWishlistPage() {
 
   if (loading || !user) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-purple-100 to-pink-100 flex items-center justify-center">
-        <p className="text-2xl">よみこみちゅう...</p>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <p>読み込み中...</p>
       </div>
     );
   }
@@ -129,32 +134,47 @@ export default function KidsWishlistPage() {
   const completedCount = items.filter((i) => i.completed).length;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-purple-100 to-pink-100 pb-24">
-      {/* ヘッダー */}
-      <div className="bg-gradient-to-r from-purple-400 to-pink-400 p-4 shadow-lg">
-        <h1 className="text-2xl font-bold text-white text-center">
-          やりたいことリスト
-        </h1>
-      </div>
+    <div className="min-h-screen bg-gray-50 pb-20">
+      {/* ヘッダー - 高校生版と同じスタイル */}
+      <header className="bg-blue-700 text-white shadow-md">
+        <div className="max-w-7xl mx-auto px-4 py-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <h1 className="font-bold text-lg">学習進捗管理</h1>
+              {user && (
+                <Badge variant="secondary" className="ml-2">
+                  {user.name}
+                </Badge>
+              )}
+            </div>
+            <Button
+              variant="ghost"
+              onClick={handleLogout}
+              className="text-white hover:bg-white/20"
+            >
+              ログアウト
+            </Button>
+          </div>
+        </div>
+      </header>
 
-      <main className="max-w-lg mx-auto px-4 py-6 space-y-4">
+      <main className="max-w-4xl mx-auto px-4 py-6 space-y-4">
         {/* 追加フォーム */}
-        <Card className="bg-white/90 border-4 border-purple-400 shadow-xl">
+        <Card>
           <CardContent className="p-4">
             <div className="flex gap-2">
               <Input
-                placeholder="やりたいことをかこう！"
+                placeholder="やりたいことを入力"
                 value={newItem}
                 onChange={(e) => setNewItem(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleAdd()}
-                className="flex-1 text-lg"
+                className="flex-1"
               />
               <Button
                 onClick={handleAdd}
                 disabled={adding || !newItem.trim()}
-                className="bg-purple-500 hover:bg-purple-600 text-xl px-6"
               >
-                +
+                追加
               </Button>
             </div>
           </CardContent>
@@ -162,17 +182,17 @@ export default function KidsWishlistPage() {
 
         {/* 進捗 */}
         {items.length > 0 && (
-          <Card className="bg-white/90 border-4 border-pink-400 shadow-xl">
+          <Card>
             <CardContent className="p-4">
-              <div className="text-center mb-2">
-                <span className="text-lg">できたこと: </span>
-                <span className="text-2xl font-bold text-pink-600">
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-sm text-gray-600">達成状況</span>
+                <span className="font-bold">
                   {completedCount} / {items.length}
                 </span>
               </div>
-              <div className="h-4 bg-gray-200 rounded-full overflow-hidden">
+              <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-gradient-to-r from-purple-400 to-pink-400 transition-all"
+                  className="h-full bg-blue-500 transition-all"
                   style={{ width: `${items.length > 0 ? (completedCount / items.length) * 100 : 0}%` }}
                 />
               </div>
@@ -181,36 +201,38 @@ export default function KidsWishlistPage() {
         )}
 
         {/* リスト */}
-        <Card className="bg-white/90 border-4 border-purple-400 shadow-xl">
-          <CardContent className="p-4">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">リスト</CardTitle>
+          </CardHeader>
+          <CardContent>
             {items.length === 0 ? (
-              <div className="text-center py-8">
-                <div className="text-4xl mb-4">📝</div>
-                <p className="text-gray-500">やりたいことをかいてみよう！</p>
-              </div>
+              <p className="text-gray-500 text-center py-4">やりたいことを追加してみましょう</p>
             ) : (
               <div className="space-y-2">
                 {items.map((item) => (
                   <div
                     key={item.id}
-                    className={`flex items-center gap-3 p-3 rounded-xl transition-all ${
-                      item.completed ? "bg-green-100" : "bg-purple-50"
+                    className={`flex items-center gap-3 p-3 rounded-lg ${
+                      item.completed ? "bg-green-50" : "bg-gray-50"
                     }`}
                   >
                     <button
                       onClick={() => handleToggle(item)}
-                      className={`w-10 h-10 rounded-full border-4 flex items-center justify-center transition-all ${
+                      className={`w-6 h-6 rounded border-2 flex items-center justify-center transition-all ${
                         item.completed
                           ? "bg-green-500 border-green-500 text-white"
-                          : "bg-white border-purple-300 hover:border-purple-500"
+                          : "bg-white border-gray-300 hover:border-blue-500"
                       }`}
                     >
                       {item.completed && (
-                        <span className="text-xl">✓</span>
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                        </svg>
                       )}
                     </button>
                     <span
-                      className={`flex-1 text-lg ${
+                      className={`flex-1 ${
                         item.completed ? "text-gray-400 line-through" : "text-gray-700"
                       }`}
                     >
@@ -218,9 +240,11 @@ export default function KidsWishlistPage() {
                     </span>
                     <button
                       onClick={() => handleDelete(item.id)}
-                      className="text-gray-400 hover:text-red-500 text-xl"
+                      className="text-gray-400 hover:text-red-500"
                     >
-                      ×
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
                     </button>
                   </div>
                 ))}
@@ -231,23 +255,19 @@ export default function KidsWishlistPage() {
       </main>
 
       {/* 下部ナビゲーション */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t-4 border-yellow-400 z-50">
-        <div className="flex justify-around items-center h-20 max-w-lg mx-auto">
-          <Link href="/kids/dashboard" className={`flex flex-col items-center ${pathname === "/kids/dashboard" ? "text-yellow-600 font-bold" : "text-gray-500"}`}>
-            <span className="text-2xl">🏠</span>
-            <span className="text-xs">ホーム</span>
+      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50">
+        <div className="flex justify-around items-center h-16 max-w-lg mx-auto">
+          <Link href="/kids/dashboard" className={`flex items-center justify-center w-full h-full transition-colors ${pathname === "/kids/dashboard" ? "text-blue-600 font-bold" : "text-gray-500"}`}>
+            <span className="text-sm">ホーム</span>
           </Link>
-          <Link href="/kids/study" className={`flex flex-col items-center ${pathname === "/kids/study" ? "text-yellow-600 font-bold" : "text-gray-500"}`}>
-            <span className="text-2xl">📝</span>
-            <span className="text-xs">きろく</span>
+          <Link href="/kids/study" className={`flex items-center justify-center w-full h-full transition-colors ${pathname === "/kids/study" ? "text-blue-600 font-bold" : "text-gray-500"}`}>
+            <span className="text-sm">学習記録</span>
           </Link>
-          <Link href="/kids/wishlist" className={`flex flex-col items-center ${pathname === "/kids/wishlist" ? "text-yellow-600 font-bold" : "text-gray-500"}`}>
-            <span className="text-2xl">📋</span>
-            <span className="text-xs">やりたいこと</span>
+          <Link href="/kids/wishlist" className={`flex items-center justify-center w-full h-full transition-colors ${pathname === "/kids/wishlist" ? "text-blue-600 font-bold" : "text-gray-500"}`}>
+            <span className="text-sm">目標</span>
           </Link>
-          <Link href="/kids/messages" className={`flex flex-col items-center ${pathname === "/kids/messages" ? "text-yellow-600 font-bold" : "text-gray-500"}`}>
-            <span className="text-2xl">💬</span>
-            <span className="text-xs">メッセージ</span>
+          <Link href="/kids/messages" className={`flex items-center justify-center w-full h-full transition-colors ${pathname === "/kids/messages" ? "text-blue-600 font-bold" : "text-gray-500"}`}>
+            <span className="text-sm">メッセージ</span>
           </Link>
         </div>
       </nav>

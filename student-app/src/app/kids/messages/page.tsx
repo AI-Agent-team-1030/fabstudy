@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { db } from "@/lib/firebase";
 import {
@@ -13,10 +13,12 @@ import {
   getDocs,
   doc,
   updateDoc,
+  addDoc,
   Timestamp,
   or,
 } from "firebase/firestore";
 import { REPLY_TYPES } from "@/types";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -39,12 +41,17 @@ interface MessageReceipt {
 }
 
 export default function KidsMessagesPage() {
-  const { user, loading } = useAuth();
+  const { user, loading, logout } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const [messages, setMessages] = useState<(Message & { receipt?: MessageReceipt })[]>([]);
   const [loadingMessages, setLoadingMessages] = useState(true);
   const [selectedMessage, setSelectedMessage] = useState<(Message & { receipt?: MessageReceipt }) | null>(null);
+
+  const handleLogout = () => {
+    logout();
+    router.push("/login");
+  };
 
   useEffect(() => {
     if (!loading && !user) {
@@ -64,7 +71,6 @@ export default function KidsMessagesPage() {
   const loadMessages = async () => {
     if (!user) return;
     try {
-      // 自分宛てのメッセージを取得
       const messagesRef = collection(db, "messages");
       const q = query(
         messagesRef,
@@ -79,7 +85,6 @@ export default function KidsMessagesPage() {
         ...doc.data(),
       })) as Message[];
 
-      // 既読・返信状態を取得
       const receiptsRef = collection(db, "messageReceipts");
       const receiptsQuery = query(receiptsRef, where("userId", "==", user.id));
       const receiptsSnapshot = await getDocs(receiptsQuery);
@@ -94,13 +99,11 @@ export default function KidsMessagesPage() {
         });
       });
 
-      // メッセージにreceipt情報を付与
       const messagesWithReceipts = messagesData.map((msg) => ({
         ...msg,
         receipt: receiptsMap.get(msg.id),
       }));
 
-      // 日付順にソート
       messagesWithReceipts.sort((a, b) => {
         const dateA = a.createdAt?.toDate?.() || new Date(0);
         const dateB = b.createdAt?.toDate?.() || new Date(0);
@@ -122,7 +125,6 @@ export default function KidsMessagesPage() {
       const receiptsRef = collection(db, "messageReceipts");
 
       if (selectedMessage.receipt) {
-        // 既存の receipt を更新
         const receiptRef = doc(db, "messageReceipts", selectedMessage.receipt.id);
         await updateDoc(receiptRef, {
           isRead: true,
@@ -131,8 +133,6 @@ export default function KidsMessagesPage() {
           repliedAt: Timestamp.now(),
         });
       } else {
-        // 新しい receipt を作成
-        const { addDoc } = await import("firebase/firestore");
         await addDoc(receiptsRef, {
           messageId: selectedMessage.id,
           userId: user.id,
@@ -144,12 +144,12 @@ export default function KidsMessagesPage() {
         });
       }
 
-      toast.success("へんしんしたよ！");
+      toast.success("返信しました");
       setSelectedMessage(null);
       loadMessages();
     } catch (error) {
       console.error("Failed to reply:", error);
-      toast.error("へんしんできなかった...");
+      toast.error("返信に失敗しました");
     }
   };
 
@@ -165,29 +165,44 @@ export default function KidsMessagesPage() {
 
   if (loading || !user) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-cyan-100 to-blue-100 flex items-center justify-center">
-        <p className="text-2xl">よみこみちゅう...</p>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <p>読み込み中...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-cyan-100 to-blue-100 pb-24">
-      {/* ヘッダー */}
-      <div className="bg-gradient-to-r from-cyan-400 to-blue-400 p-4 shadow-lg">
-        <h1 className="text-2xl font-bold text-white text-center">
-          メッセージ
-        </h1>
-      </div>
+    <div className="min-h-screen bg-gray-50 pb-20">
+      {/* ヘッダー - 高校生版と同じスタイル */}
+      <header className="bg-blue-700 text-white shadow-md">
+        <div className="max-w-7xl mx-auto px-4 py-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <h1 className="font-bold text-lg">学習進捗管理</h1>
+              {user && (
+                <Badge variant="secondary" className="ml-2">
+                  {user.name}
+                </Badge>
+              )}
+            </div>
+            <Button
+              variant="ghost"
+              onClick={handleLogout}
+              className="text-white hover:bg-white/20"
+            >
+              ログアウト
+            </Button>
+          </div>
+        </div>
+      </header>
 
-      <main className="max-w-lg mx-auto px-4 py-6 space-y-4">
+      <main className="max-w-4xl mx-auto px-4 py-6">
         {loadingMessages ? (
-          <p className="text-center text-gray-500">よみこみちゅう...</p>
+          <p className="text-center text-gray-500">読み込み中...</p>
         ) : messages.length === 0 ? (
-          <Card className="bg-white/90 border-4 border-cyan-400 shadow-xl">
+          <Card>
             <CardContent className="p-8 text-center">
-              <div className="text-4xl mb-4">📭</div>
-              <p className="text-gray-500">メッセージはまだないよ</p>
+              <p className="text-gray-500">メッセージはまだありません</p>
             </CardContent>
           </Card>
         ) : (
@@ -195,12 +210,8 @@ export default function KidsMessagesPage() {
             {messages.map((message) => (
               <Card
                 key={message.id}
-                className={`bg-white/90 border-4 shadow-xl cursor-pointer transition-all hover:scale-[1.02] ${
-                  message.receipt?.reply
-                    ? "border-green-400"
-                    : message.priority === "important"
-                    ? "border-red-400"
-                    : "border-cyan-400"
+                className={`cursor-pointer transition-all hover:shadow-md ${
+                  message.receipt?.reply ? "border-green-200" : ""
                 }`}
                 onClick={() => setSelectedMessage(message)}
               >
@@ -208,16 +219,16 @@ export default function KidsMessagesPage() {
                   <div className="flex justify-between items-start mb-2">
                     <div className="flex items-center gap-2">
                       {message.priority === "important" && (
-                        <span className="text-xl">⭐</span>
+                        <span className="text-red-500 text-sm font-bold">重要</span>
                       )}
-                      <span className="font-bold text-lg">{message.title}</span>
+                      <span className="font-bold">{message.title}</span>
                     </div>
                     <span className="text-sm text-gray-500">{formatDate(message.createdAt)}</span>
                   </div>
-                  <p className="text-gray-600 line-clamp-2">{message.body}</p>
+                  <p className="text-gray-600 text-sm line-clamp-2">{message.body}</p>
                   {message.receipt?.reply && (
-                    <div className="mt-2 text-sm text-green-600 font-bold">
-                      ✓ 「{getReplyLabel(message.receipt.reply)}」とへんしんずみ
+                    <div className="mt-2 text-sm text-green-600">
+                      返信済み: {getReplyLabel(message.receipt.reply)}
                     </div>
                   )}
                 </CardContent>
@@ -230,27 +241,32 @@ export default function KidsMessagesPage() {
       {/* メッセージ詳細モーダル */}
       {selectedMessage && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <Card className="bg-white w-full max-w-md border-4 border-cyan-400 shadow-2xl max-h-[80vh] overflow-y-auto">
-            <CardContent className="p-6">
-              <div className="flex justify-between items-start mb-4">
-                <h2 className="text-xl font-bold">{selectedMessage.title}</h2>
+          <Card className="w-full max-w-md max-h-[80vh] overflow-y-auto">
+            <CardHeader>
+              <div className="flex justify-between items-start">
+                <CardTitle className="text-lg">{selectedMessage.title}</CardTitle>
                 <button
                   onClick={() => setSelectedMessage(null)}
-                  className="text-2xl text-gray-400 hover:text-gray-600"
+                  className="text-gray-400 hover:text-gray-600"
                 >
-                  ×
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
                 </button>
               </div>
+            </CardHeader>
+            <CardContent>
               <p className="text-gray-600 whitespace-pre-wrap mb-6">{selectedMessage.body}</p>
 
               {!selectedMessage.receipt?.reply && (
                 <div className="space-y-2">
-                  <p className="text-center text-gray-500 mb-3">へんしんしよう！</p>
+                  <p className="text-sm text-gray-500 mb-3">返信を選択:</p>
                   {REPLY_TYPES.map((reply) => (
                     <Button
                       key={reply.key}
                       onClick={() => handleReply(reply.key)}
-                      className="w-full h-12 text-lg bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600"
+                      variant="outline"
+                      className="w-full"
                     >
                       {reply.label}
                     </Button>
@@ -259,9 +275,9 @@ export default function KidsMessagesPage() {
               )}
 
               {selectedMessage.receipt?.reply && (
-                <div className="text-center p-4 bg-green-100 rounded-xl">
-                  <p className="text-green-600 font-bold">
-                    「{getReplyLabel(selectedMessage.receipt.reply)}」とへんしんしたよ！
+                <div className="text-center p-4 bg-green-50 rounded-lg">
+                  <p className="text-green-600">
+                    「{getReplyLabel(selectedMessage.receipt.reply)}」と返信済み
                   </p>
                 </div>
               )}
@@ -271,23 +287,19 @@ export default function KidsMessagesPage() {
       )}
 
       {/* 下部ナビゲーション */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t-4 border-yellow-400 z-40">
-        <div className="flex justify-around items-center h-20 max-w-lg mx-auto">
-          <Link href="/kids/dashboard" className={`flex flex-col items-center ${pathname === "/kids/dashboard" ? "text-yellow-600 font-bold" : "text-gray-500"}`}>
-            <span className="text-2xl">🏠</span>
-            <span className="text-xs">ホーム</span>
+      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-40">
+        <div className="flex justify-around items-center h-16 max-w-lg mx-auto">
+          <Link href="/kids/dashboard" className={`flex items-center justify-center w-full h-full transition-colors ${pathname === "/kids/dashboard" ? "text-blue-600 font-bold" : "text-gray-500"}`}>
+            <span className="text-sm">ホーム</span>
           </Link>
-          <Link href="/kids/study" className={`flex flex-col items-center ${pathname === "/kids/study" ? "text-yellow-600 font-bold" : "text-gray-500"}`}>
-            <span className="text-2xl">📝</span>
-            <span className="text-xs">きろく</span>
+          <Link href="/kids/study" className={`flex items-center justify-center w-full h-full transition-colors ${pathname === "/kids/study" ? "text-blue-600 font-bold" : "text-gray-500"}`}>
+            <span className="text-sm">学習記録</span>
           </Link>
-          <Link href="/kids/wishlist" className={`flex flex-col items-center ${pathname === "/kids/wishlist" ? "text-yellow-600 font-bold" : "text-gray-500"}`}>
-            <span className="text-2xl">📋</span>
-            <span className="text-xs">やりたいこと</span>
+          <Link href="/kids/wishlist" className={`flex items-center justify-center w-full h-full transition-colors ${pathname === "/kids/wishlist" ? "text-blue-600 font-bold" : "text-gray-500"}`}>
+            <span className="text-sm">目標</span>
           </Link>
-          <Link href="/kids/messages" className={`flex flex-col items-center ${pathname === "/kids/messages" ? "text-yellow-600 font-bold" : "text-gray-500"}`}>
-            <span className="text-2xl">💬</span>
-            <span className="text-xs">メッセージ</span>
+          <Link href="/kids/messages" className={`flex items-center justify-center w-full h-full transition-colors ${pathname === "/kids/messages" ? "text-blue-600 font-bold" : "text-gray-500"}`}>
+            <span className="text-sm">メッセージ</span>
           </Link>
         </div>
       </nav>

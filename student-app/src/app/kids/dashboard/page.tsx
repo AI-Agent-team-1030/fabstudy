@@ -3,20 +3,30 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { db } from "@/lib/firebase";
 import { collection, query, where, getDocs, doc, getDoc, setDoc, Timestamp } from "firebase/firestore";
 import { getLevelFromExp, LEVEL_CONFIG, BADGES, UserGameData } from "@/types";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 export default function KidsDashboardPage() {
-  const { user, loading } = useAuth();
+  const { user, loading, logout } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
   const [gameData, setGameData] = useState<UserGameData | null>(null);
   const [totalMinutes, setTotalMinutes] = useState(0);
   const [todayMinutes, setTodayMinutes] = useState(0);
+  const [weeklyMinutes, setWeeklyMinutes] = useState(0);
   const [totalRecords, setTotalRecords] = useState(0);
   const [loadingData, setLoadingData] = useState(true);
+
+  const handleLogout = () => {
+    logout();
+    router.push("/login");
+  };
 
   useEffect(() => {
     if (!loading && !user) {
@@ -43,7 +53,17 @@ export default function KidsDashboardPage() {
 
       let total = 0;
       let today = 0;
-      const todayStr = new Date().toISOString().split("T")[0];
+      let weekly = 0;
+      const todayDate = new Date();
+      todayDate.setHours(0, 0, 0, 0);
+      const todayStr = todayDate.toISOString().split("T")[0];
+
+      // 今週の開始日（月曜日）
+      const dayOfWeek = todayDate.getDay();
+      const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+      const weekStart = new Date(todayDate);
+      weekStart.setDate(todayDate.getDate() + mondayOffset);
+
       const uniqueDates = new Set<string>();
 
       snapshot.docs.forEach((doc) => {
@@ -51,16 +71,23 @@ export default function KidsDashboardPage() {
         total += data.duration || 0;
 
         const logDate = data.date?.toDate?.() || new Date(data.date);
-        const logDateStr = logDate.toISOString().split("T")[0];
+        const logDateOnly = new Date(logDate);
+        logDateOnly.setHours(0, 0, 0, 0);
+        const logDateStr = logDateOnly.toISOString().split("T")[0];
         uniqueDates.add(logDateStr);
 
         if (logDateStr === todayStr) {
           today += data.duration || 0;
         }
+
+        if (logDateOnly >= weekStart) {
+          weekly += data.duration || 0;
+        }
       });
 
       setTotalMinutes(total);
       setTodayMinutes(today);
+      setWeeklyMinutes(weekly);
       setTotalRecords(snapshot.docs.length);
 
       // ゲームデータを取得または作成
@@ -124,15 +151,15 @@ export default function KidsDashboardPage() {
   const formatTime = (minutes: number) => {
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
-    if (hours === 0) return `${mins}ぷん`;
-    if (mins === 0) return `${hours}じかん`;
-    return `${hours}じかん${mins}ぷん`;
+    if (hours === 0) return `${mins}分`;
+    if (mins === 0) return `${hours}時間`;
+    return `${hours}時間${mins}分`;
   };
 
   if (loading || loadingData) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-yellow-100 to-orange-100 flex items-center justify-center">
-        <p className="text-2xl">よみこみちゅう...</p>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <p>読み込み中...</p>
       </div>
     );
   }
@@ -145,32 +172,59 @@ export default function KidsDashboardPage() {
   const expProgress = levelInfo.nextLevelExp > 0 ? (levelInfo.currentExp / levelInfo.nextLevelExp) * 100 : 0;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-yellow-100 to-orange-100 pb-24">
-      {/* ヘッダー */}
-      <div className="bg-gradient-to-r from-orange-400 to-yellow-400 p-4 shadow-lg">
-        <h1 className="text-2xl font-bold text-white text-center">
-          {user.name}さんの へや
-        </h1>
-      </div>
-
-      <main className="max-w-lg mx-auto px-4 py-6 space-y-4">
-        {/* レベル表示 */}
-        <Card className="bg-white/90 border-4 border-yellow-400 shadow-xl">
-          <CardContent className="p-6">
-            <div className="text-center mb-4">
-              <div className="text-6xl mb-2">⭐</div>
-              <div className="text-3xl font-bold text-yellow-600">
-                レベル {levelInfo.level}
-              </div>
+    <div className="min-h-screen bg-gray-50 pb-20">
+      {/* ヘッダー - 高校生版と同じスタイル */}
+      <header className="bg-blue-700 text-white shadow-md">
+        <div className="max-w-7xl mx-auto px-4 py-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <h1 className="font-bold text-lg">学習進捗管理</h1>
+              <Badge variant="secondary" className="ml-2">
+                {user.name}
+              </Badge>
             </div>
+            <Button
+              variant="ghost"
+              onClick={handleLogout}
+              className="text-white hover:bg-white/20"
+            >
+              ログアウト
+            </Button>
+          </div>
+        </div>
+      </header>
+
+      <main className="max-w-4xl mx-auto px-4 py-6">
+        <h2 className="text-2xl font-bold text-gray-800 mb-6">
+          こんにちは、{user.name}さん
+        </h2>
+
+        {/* 今週の勉強時間 */}
+        <Card className="mb-6">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg">今週の勉強時間</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-4xl font-bold text-blue-600 text-center py-4">
+              {formatTime(weeklyMinutes)}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* レベルと経験値 */}
+        <Card className="mb-6">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg">レベル {levelInfo.level}</CardTitle>
+          </CardHeader>
+          <CardContent>
             <div className="space-y-2">
               <div className="flex justify-between text-sm text-gray-600">
-                <span>けいけんち</span>
+                <span>経験値</span>
                 <span>{levelInfo.currentExp} / {levelInfo.nextLevelExp}</span>
               </div>
-              <div className="h-6 bg-gray-200 rounded-full overflow-hidden">
+              <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-gradient-to-r from-yellow-400 to-orange-500 transition-all duration-500"
+                  className="h-full bg-blue-500 transition-all duration-500"
                   style={{ width: `${expProgress}%` }}
                 />
               </div>
@@ -178,49 +232,52 @@ export default function KidsDashboardPage() {
           </CardContent>
         </Card>
 
-        {/* 連続記録 */}
-        <Card className="bg-white/90 border-4 border-red-400 shadow-xl">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div className="text-4xl">🔥</div>
-              <div className="text-center flex-1">
-                <div className="text-lg text-gray-600">れんぞくきろく</div>
-                <div className="text-4xl font-bold text-red-500">
-                  {gameData?.currentStreak || 0}にち
-                </div>
+        {/* 統計カード */}
+        <Card className="mb-6">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg">学習時間</CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="grid grid-cols-3 border-y bg-gray-100">
+              <div className="text-center py-2 border-r">
+                <div className="text-sm text-gray-500">今日</div>
               </div>
-              <div className="text-4xl">🔥</div>
+              <div className="text-center py-2 border-r">
+                <div className="text-sm text-gray-500">連続記録</div>
+              </div>
+              <div className="text-center py-2">
+                <div className="text-sm text-gray-500">総計</div>
+              </div>
             </div>
-          </CardContent>
-        </Card>
-
-        {/* 今日の勉強時間 */}
-        <Card className="bg-white/90 border-4 border-blue-400 shadow-xl">
-          <CardContent className="p-6">
-            <div className="text-center">
-              <div className="text-lg text-gray-600 mb-2">きょうのべんきょう</div>
-              <div className="text-4xl font-bold text-blue-600">
-                {formatTime(todayMinutes)}
+            <div className="grid grid-cols-3">
+              <div className="text-center py-4 border-r">
+                <span className="text-xl font-bold text-blue-600">{formatTime(todayMinutes)}</span>
+              </div>
+              <div className="text-center py-4 border-r">
+                <span className="text-xl font-bold text-orange-500">{gameData?.currentStreak || 0}日</span>
+              </div>
+              <div className="text-center py-4">
+                <span className="text-xl font-bold">{formatTime(totalMinutes)}</span>
               </div>
             </div>
           </CardContent>
         </Card>
 
         {/* バッジコレクション */}
-        <Card className="bg-white/90 border-4 border-purple-400 shadow-xl">
-          <CardContent className="p-6">
-            <div className="text-center mb-4">
-              <div className="text-lg font-bold text-purple-600">バッジコレクション</div>
-            </div>
-            <div className="grid grid-cols-5 gap-2">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg">バッジ</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-5 gap-3">
               {BADGES.map((badge) => {
                 const isEarned = gameData?.earnedBadges.includes(badge.id);
                 return (
                   <div
                     key={badge.id}
-                    className={`text-3xl text-center p-2 rounded-lg transition-all ${
+                    className={`text-2xl text-center p-2 rounded-lg transition-all ${
                       isEarned
-                        ? "bg-yellow-100 scale-110"
+                        ? "bg-yellow-100"
                         : "bg-gray-100 grayscale opacity-40"
                     }`}
                     title={isEarned ? badge.name : "???"}
@@ -231,46 +288,26 @@ export default function KidsDashboardPage() {
               })}
             </div>
             <div className="text-center mt-3 text-sm text-gray-500">
-              {gameData?.earnedBadges.length || 0} / {BADGES.length} コンプリート
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* 累計 */}
-        <Card className="bg-white/90 border-4 border-green-400 shadow-xl">
-          <CardContent className="p-4">
-            <div className="grid grid-cols-2 gap-4 text-center">
-              <div>
-                <div className="text-sm text-gray-600">ぜんぶで</div>
-                <div className="text-2xl font-bold text-green-600">{formatTime(totalMinutes)}</div>
-              </div>
-              <div>
-                <div className="text-sm text-gray-600">きろくした回数</div>
-                <div className="text-2xl font-bold text-green-600">{totalRecords}かい</div>
-              </div>
+              {gameData?.earnedBadges.length || 0} / {BADGES.length} 個獲得
             </div>
           </CardContent>
         </Card>
       </main>
 
-      {/* 下部ナビゲーション */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t-4 border-yellow-400 z-50">
-        <div className="flex justify-around items-center h-20 max-w-lg mx-auto">
-          <Link href="/kids/dashboard" className="flex flex-col items-center text-yellow-600 font-bold">
-            <span className="text-2xl">🏠</span>
-            <span className="text-xs">ホーム</span>
+      {/* 下部ナビゲーション - 高校生版と同じスタイル */}
+      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50">
+        <div className="flex justify-around items-center h-16 max-w-lg mx-auto">
+          <Link href="/kids/dashboard" className={`flex items-center justify-center w-full h-full transition-colors ${pathname === "/kids/dashboard" ? "text-blue-600 font-bold" : "text-gray-500"}`}>
+            <span className="text-sm">ホーム</span>
           </Link>
-          <Link href="/kids/study" className="flex flex-col items-center text-gray-500">
-            <span className="text-2xl">📝</span>
-            <span className="text-xs">きろく</span>
+          <Link href="/kids/study" className={`flex items-center justify-center w-full h-full transition-colors ${pathname === "/kids/study" ? "text-blue-600 font-bold" : "text-gray-500"}`}>
+            <span className="text-sm">学習記録</span>
           </Link>
-          <Link href="/kids/wishlist" className="flex flex-col items-center text-gray-500">
-            <span className="text-2xl">📋</span>
-            <span className="text-xs">やりたいこと</span>
+          <Link href="/kids/wishlist" className={`flex items-center justify-center w-full h-full transition-colors ${pathname === "/kids/wishlist" ? "text-blue-600 font-bold" : "text-gray-500"}`}>
+            <span className="text-sm">目標</span>
           </Link>
-          <Link href="/kids/messages" className="flex flex-col items-center text-gray-500">
-            <span className="text-2xl">💬</span>
-            <span className="text-xs">メッセージ</span>
+          <Link href="/kids/messages" className={`flex items-center justify-center w-full h-full transition-colors ${pathname === "/kids/messages" ? "text-blue-600 font-bold" : "text-gray-500"}`}>
+            <span className="text-sm">メッセージ</span>
           </Link>
         </div>
       </nav>
