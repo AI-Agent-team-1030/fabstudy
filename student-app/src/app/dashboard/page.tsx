@@ -353,13 +353,13 @@ export default function DashboardPage() {
               </div>
             ) : (
               <>
-                {/* 今日・今月・総計 */}
+                {/* 今日・今週・総計 */}
                 <div className="grid grid-cols-3 border-y bg-gray-100">
                   <div className="text-center py-2 border-r">
                     <div className="text-sm text-gray-500">今日</div>
                   </div>
                   <div className="text-center py-2 border-r">
-                    <div className="text-sm text-gray-500">今月</div>
+                    <div className="text-sm text-gray-500">今週</div>
                   </div>
                   <div className="text-center py-2">
                     <div className="text-sm text-gray-500">総計</div>
@@ -370,7 +370,7 @@ export default function DashboardPage() {
                     <span className="text-xl font-bold">{formatMinutesToDisplay(todayTotal)}</span>
                   </div>
                   <div className="text-center py-3 border-r">
-                    <span className="text-xl font-bold">{formatMinutesToDisplay(getMonthlyTotal())}</span>
+                    <span className="text-xl font-bold">{formatMinutesToDisplay(getWeeklyStudyTime())}</span>
                   </div>
                   <div className="text-center py-3">
                     <span className="text-xl font-bold">{formatMinutesToDisplay(getAllTimeTotal())}</span>
