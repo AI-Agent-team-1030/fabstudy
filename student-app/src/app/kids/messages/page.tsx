@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { db } from "@/lib/firebase";
 import {
   collection,
@@ -39,12 +40,44 @@ interface MessageReceipt {
   reply?: string;
 }
 
+interface StudentMessage {
+  id: string;
+  studentId: string;
+  studentName: string;
+  mood?: number;
+  reaction?: string;
+  message?: string;
+  createdAt: Timestamp;
+}
+
+const MOOD_EMOJIS = [
+  { value: 1, emoji: "😢", label: "つらい" },
+  { value: 2, emoji: "😕", label: "いまいち" },
+  { value: 3, emoji: "😐", label: "ふつう" },
+  { value: 4, emoji: "🙂", label: "いいかんじ" },
+  { value: 5, emoji: "😄", label: "さいこう" },
+];
+
+const SEND_REACTIONS = [
+  { emoji: "👍", label: "グッド" },
+  { emoji: "✅", label: "りょうかい" },
+  { emoji: "🙏", label: "ありがとう" },
+  { emoji: "🔥", label: "やるき" },
+];
+
 export default function KidsMessagesPage() {
   const { user, loading, logout } = useAuth();
   const router = useRouter();
   const [messages, setMessages] = useState<(Message & { receipt?: MessageReceipt })[]>([]);
   const [loadingMessages, setLoadingMessages] = useState(true);
   const [selectedMessage, setSelectedMessage] = useState<(Message & { receipt?: MessageReceipt }) | null>(null);
+
+  // 先生に送信用のstate
+  const [selectedMood, setSelectedMood] = useState<number | null>(null);
+  const [selectedReaction, setSelectedReaction] = useState<string | null>(null);
+  const [messageText, setMessageText] = useState("");
+  const [sendingMessage, setSendingMessage] = useState(false);
+  const [myMessages, setMyMessages] = useState<StudentMessage[]>([]);
 
   const handleLogout = () => {
     logout();
@@ -63,8 +96,66 @@ export default function KidsMessagesPage() {
   useEffect(() => {
     if (user) {
       loadMessages();
+      loadMyMessages();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
+
+  const loadMyMessages = async () => {
+    if (!user) return;
+    try {
+      const studentMessagesRef = collection(db, "studentMessages");
+      const q = query(studentMessagesRef, where("studentId", "==", user.id));
+      const snapshot = await getDocs(q);
+
+      const messagesData = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      })) as StudentMessage[];
+
+      messagesData.sort((a, b) => {
+        const dateA = a.createdAt?.toDate?.() || new Date(0);
+        const dateB = b.createdAt?.toDate?.() || new Date(0);
+        return dateB.getTime() - dateA.getTime();
+      });
+
+      setMyMessages(messagesData);
+    } catch (error) {
+      console.error("Failed to load my messages:", error);
+    }
+  };
+
+  const handleSendToTeacher = async () => {
+    if (!user) return;
+    if (!selectedMood && !selectedReaction && !messageText.trim()) {
+      toast.error("きもち、リアクション、またはメッセージをえらんでね");
+      return;
+    }
+
+    setSendingMessage(true);
+    try {
+      const studentMessagesRef = collection(db, "studentMessages");
+      await addDoc(studentMessagesRef, {
+        studentId: user.id,
+        studentName: user.name,
+        mood: selectedMood || null,
+        reaction: selectedReaction || null,
+        message: messageText.trim() || null,
+        createdAt: Timestamp.now(),
+      });
+
+      toast.success("せんせいにおくりました！");
+      setSelectedMood(null);
+      setSelectedReaction(null);
+      setMessageText("");
+      loadMyMessages();
+    } catch (error) {
+      console.error("Failed to send message:", error);
+      toast.error("おくれませんでした");
+    } finally {
+      setSendingMessage(false);
+    }
+  };
 
   const loadMessages = async () => {
     if (!user) return;
@@ -237,6 +328,113 @@ export default function KidsMessagesPage() {
               </Card>
             ))}
           </div>
+        )}
+
+        {/* せんせいに送信 */}
+        <Card className="mt-6">
+          <CardHeader>
+            <CardTitle>
+              📨 <ruby>先生<rt>せんせい</rt></ruby>に<ruby>送<rt>おく</rt></ruby>る
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* きもち（5段階） */}
+            <div>
+              <p className="text-sm font-medium text-gray-700 mb-2">
+                <ruby>今<rt>いま</rt></ruby>の<ruby>気持<rt>きも</rt></ruby>ち
+              </p>
+              <div className="flex gap-2 flex-wrap">
+                {MOOD_EMOJIS.map((mood) => (
+                  <Button
+                    key={mood.value}
+                    variant={selectedMood === mood.value ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setSelectedMood(selectedMood === mood.value ? null : mood.value)}
+                    className="text-2xl px-3 py-2 h-auto"
+                  >
+                    {mood.emoji}
+                    <span className="text-xs ml-1">{mood.label}</span>
+                  </Button>
+                ))}
+              </div>
+            </div>
+
+            {/* リアクション（4種類） */}
+            <div>
+              <p className="text-sm font-medium text-gray-700 mb-2">リアクション</p>
+              <div className="flex gap-2 flex-wrap">
+                {SEND_REACTIONS.map((reaction) => (
+                  <Button
+                    key={reaction.emoji}
+                    variant={selectedReaction === reaction.emoji ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setSelectedReaction(selectedReaction === reaction.emoji ? null : reaction.emoji)}
+                    className="text-xl px-3 py-2 h-auto"
+                  >
+                    {reaction.emoji}
+                    <span className="text-xs ml-1">{reaction.label}</span>
+                  </Button>
+                ))}
+              </div>
+            </div>
+
+            {/* メッセージ入力 */}
+            <div>
+              <p className="text-sm font-medium text-gray-700 mb-2">
+                メッセージ（<ruby>書<rt>か</rt></ruby>かなくてもOK）
+              </p>
+              <Textarea
+                placeholder="せんせいにつたえたいことをかいてね..."
+                value={messageText}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setMessageText(e.target.value)}
+                rows={3}
+              />
+            </div>
+
+            {/* 送信ボタン */}
+            <Button
+              onClick={handleSendToTeacher}
+              disabled={sendingMessage || (!selectedMood && !selectedReaction && !messageText.trim())}
+              className="w-full text-lg py-3"
+            >
+              {sendingMessage ? "おくりちゅう..." : "📤 せんせいにおくる"}
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* 送信履歴 */}
+        {myMessages.length > 0 && (
+          <Card className="mt-6">
+            <CardHeader>
+              <CardTitle>
+                📤 <ruby>送<rt>おく</rt></ruby>った<ruby>記録<rt>きろく</rt></ruby>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {myMessages.slice(0, 5).map((msg) => (
+                  <div key={msg.id} className="border rounded-lg p-3 bg-white">
+                    <div className="flex justify-between items-start">
+                      <div className="flex items-center gap-2">
+                        {msg.mood && (
+                          <span className="text-2xl">
+                            {MOOD_EMOJIS.find((m) => m.value === msg.mood)?.emoji}
+                          </span>
+                        )}
+                        {msg.reaction && <span className="text-xl">{msg.reaction}</span>}
+                      </div>
+                      <span className="text-xs text-gray-400">
+                        {formatDate(msg.createdAt)}
+                      </span>
+                    </div>
+                    {msg.message && (
+                      <p className="text-sm text-gray-700 mt-2">{msg.message}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
         )}
       </main>
 

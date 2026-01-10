@@ -67,6 +67,24 @@ interface WishItem {
   createdAt: Timestamp;
 }
 
+interface StudentMessage {
+  id: string;
+  studentId: string;
+  studentName: string;
+  mood?: number;
+  reaction?: string;
+  message?: string;
+  createdAt: Timestamp;
+}
+
+const MOOD_EMOJIS = [
+  { value: 1, emoji: "😢", label: "つらい" },
+  { value: 2, emoji: "😕", label: "いまいち" },
+  { value: 3, emoji: "😐", label: "ふつう" },
+  { value: 4, emoji: "🙂", label: "いい感じ" },
+  { value: 5, emoji: "😄", label: "最高" },
+];
+
 type TaskLevel = "goal" | "large" | "medium" | "small";
 
 const LEVEL_CONFIG: Record<TaskLevel, { label: string; color: string; bgColor: string; childLevel: TaskLevel | null }> = {
@@ -125,6 +143,7 @@ export default function StudentDetailPage() {
   const [studyLogs, setStudyLogs] = useState<StudyLog[]>([]);
   const [allTasks, setAllTasks] = useState<Task[]>([]);
   const [wishlistItems, setWishlistItems] = useState<WishItem[]>([]);
+  const [studentMessages, setStudentMessages] = useState<StudentMessage[]>([]);
   const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
   const [loadingData, setLoadingData] = useState(true);
   const [addingTo, setAddingTo] = useState<{ parentId: string | null; level: TaskLevel } | null>(null);
@@ -220,6 +239,24 @@ export default function StudentDetailPage() {
 
         setAllTasks(tasksData);
       }
+
+      // 生徒からのメッセージを取得
+      const studentMessagesRef = collection(db, "studentMessages");
+      const studentMessagesQuery = query(studentMessagesRef, where("studentId", "==", studentId));
+      const studentMessagesSnap = await getDocs(studentMessagesQuery);
+
+      const studentMessagesData = studentMessagesSnap.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      })) as StudentMessage[];
+
+      studentMessagesData.sort((a, b) => {
+        const dateA = a.createdAt?.toDate?.() || new Date(0);
+        const dateB = b.createdAt?.toDate?.() || new Date(0);
+        return dateB.getTime() - dateA.getTime();
+      });
+
+      setStudentMessages(studentMessagesData);
     } catch (error) {
       console.error("Failed to load student data:", error);
     } finally {
@@ -1070,6 +1107,59 @@ export default function StudentDetailPage() {
                       </Badge>
                     </div>
                     <span className="font-medium">{log.duration}分</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* 生徒とのやり取り */}
+        <Card className="mt-6">
+          <CardHeader>
+            <CardTitle>💬 生徒とのやり取り</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {studentMessages.length === 0 ? (
+              <p className="text-gray-500 text-center py-4">
+                まだメッセージがありません
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {studentMessages.slice(0, 10).map((msg) => (
+                  <div
+                    key={msg.id}
+                    className="border rounded-lg p-3 bg-white"
+                  >
+                    <div className="flex justify-between items-start">
+                      <div className="flex items-center gap-2">
+                        {msg.mood && (
+                          <span className="text-2xl" title={MOOD_EMOJIS.find((m) => m.value === msg.mood)?.label}>
+                            {MOOD_EMOJIS.find((m) => m.value === msg.mood)?.emoji}
+                          </span>
+                        )}
+                        {msg.reaction && (
+                          <span className="text-xl">{msg.reaction}</span>
+                        )}
+                        {!msg.mood && !msg.reaction && !msg.message && (
+                          <span className="text-gray-400 text-sm">（内容なし）</span>
+                        )}
+                      </div>
+                      <span className="text-xs text-gray-400">
+                        {msg.createdAt?.toDate?.()
+                          ? `${msg.createdAt.toDate().getMonth() + 1}/${msg.createdAt.toDate().getDate()} ${String(msg.createdAt.toDate().getHours()).padStart(2, "0")}:${String(msg.createdAt.toDate().getMinutes()).padStart(2, "0")}`
+                          : ""
+                        }
+                      </span>
+                    </div>
+                    {msg.message && (
+                      <p className="text-sm text-gray-700 mt-2 whitespace-pre-wrap">{msg.message}</p>
+                    )}
+                    {msg.mood && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        気持ち: {MOOD_EMOJIS.find((m) => m.value === msg.mood)?.label}
+                      </p>
+                    )}
                   </div>
                 ))}
               </div>
