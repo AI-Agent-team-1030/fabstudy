@@ -31,10 +31,28 @@ interface StudyLog {
   date: Timestamp;
 }
 
+interface StudentMessage {
+  id: string;
+  studentId: string;
+  mood?: number;
+  reaction?: string;
+  message?: string;
+  createdAt: Timestamp;
+}
+
 interface StudentWithStats extends Student {
   weeklyStudyTime: number;
   lastStudyDate: string | null;
+  latestMessage?: StudentMessage;
 }
+
+const MOOD_EMOJIS: { [key: number]: string } = {
+  1: "😢",
+  2: "😕",
+  3: "😐",
+  4: "🙂",
+  5: "😄",
+};
 
 export default function TeacherStudentsPage() {
   const { user, loading } = useAuth();
@@ -79,6 +97,14 @@ export default function TeacherStudentsPage() {
       const logsSnapshot = await getDocs(logsRef);
       const allLogs = logsSnapshot.docs.map((doc) => doc.data()) as StudyLog[];
 
+      // 全生徒のメッセージを取得
+      const messagesRef = collection(db, "studentMessages");
+      const messagesSnapshot = await getDocs(messagesRef);
+      const allMessages = messagesSnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      })) as StudentMessage[];
+
       // 各生徒のスタッツを計算
       const studentsWithStats: StudentWithStats[] = studentsData.map((student) => {
         const studentLogs = allLogs.filter((log) => log.userId === student.id);
@@ -100,10 +126,21 @@ export default function TeacherStudentsPage() {
           lastStudyDate = `${lastDate.getMonth() + 1}/${lastDate.getDate()}`;
         }
 
+        // 最新のメッセージ
+        const studentMessages = allMessages.filter((msg) => msg.studentId === student.id);
+        let latestMessage: StudentMessage | undefined;
+        if (studentMessages.length > 0) {
+          const sortedMessages = studentMessages.sort(
+            (a, b) => b.createdAt.toDate().getTime() - a.createdAt.toDate().getTime()
+          );
+          latestMessage = sortedMessages[0];
+        }
+
         return {
           ...student,
           weeklyStudyTime,
           lastStudyDate,
+          latestMessage,
         };
       });
 
@@ -201,6 +238,34 @@ export default function TeacherStudentsPage() {
                   >
                     詳細を見る
                   </Button>
+
+                  {/* 最新メッセージ */}
+                  {student.latestMessage && (
+                    <div className="mt-3 pt-3 border-t text-sm">
+                      <div className="flex items-center gap-1 text-gray-500 mb-1">
+                        <span>📨 最新メッセージ</span>
+                        <span className="text-xs">
+                          ({student.latestMessage.createdAt.toDate().getMonth() + 1}/{student.latestMessage.createdAt.toDate().getDate()})
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {student.latestMessage.mood && (
+                          <span className="text-lg">{MOOD_EMOJIS[student.latestMessage.mood]}</span>
+                        )}
+                        {student.latestMessage.reaction && (
+                          <span className="text-lg">{student.latestMessage.reaction}</span>
+                        )}
+                        {student.latestMessage.message && (
+                          <span className="text-gray-600 text-xs truncate max-w-[150px]">
+                            {student.latestMessage.message}
+                          </span>
+                        )}
+                        {!student.latestMessage.mood && !student.latestMessage.reaction && !student.latestMessage.message && (
+                          <span className="text-gray-400 text-xs">（内容なし）</span>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             ))}
