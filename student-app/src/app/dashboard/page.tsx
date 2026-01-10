@@ -22,7 +22,7 @@ interface StudyLog {
   id: string;
   subject: string;
   duration: number;
-  date: any;
+  date: { toDate?: () => Date } | string | Date;
 }
 
 // 科目ごとの色
@@ -199,22 +199,6 @@ export default function DashboardPage() {
       Object.keys(day.subjects).forEach((subj) => subjects.add(subj));
     });
     return Array.from(subjects);
-  };
-
-  // 今月の勉強時間を計算
-  const getMonthlyTotal = () => {
-    const today = new Date();
-    const thisMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
-
-    let monthTotal = 0;
-    logs.forEach((log) => {
-      const logDate = log.date?.toDate?.() || new Date(log.date);
-      if (logDate >= thisMonthStart) {
-        monthTotal += log.duration || 0;
-      }
-    });
-
-    return monthTotal;
   };
 
   // 総計を計算

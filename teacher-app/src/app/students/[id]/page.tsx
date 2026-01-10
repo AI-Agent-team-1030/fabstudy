@@ -605,14 +605,14 @@ export default function StudentDetailPage() {
               ) : (
                 <div className="flex items-start gap-2">
                   <button
-                    className="text-gray-400 text-xs hover:text-gray-600 transition-colors"
+                    className="text-gray-500 text-xs hover:text-gray-700 transition-colors font-medium"
                     onClick={(e) => {
                       e.stopPropagation();
                       toggleMemoCollapse(task.id);
                     }}
                     title={collapsedMemos.has(task.id) ? "メモを開く" : "メモを閉じる"}
                   >
-                    📝
+                    メモ
                   </button>
                   {!collapsedMemos.has(task.id) && (
                     <div

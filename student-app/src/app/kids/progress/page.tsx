@@ -20,7 +20,6 @@ import {
   where,
   getDocs,
   addDoc,
-  updateDoc,
   deleteDoc,
   doc,
   Timestamp,

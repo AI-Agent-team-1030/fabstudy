@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { db } from "@/lib/firebase";
-import { collection, query, where, getDocs, doc, getDoc, setDoc, Timestamp } from "firebase/firestore";
+import { collection, query, where, getDocs } from "firebase/firestore";
 import { getLevelFromExp, LEVEL_CONFIG, SUBJECTS } from "@/types";
 import { KidsBottomNav } from "@/components/common/KidsBottomNav";
 
@@ -15,7 +15,7 @@ interface StudyLog {
   id: string;
   subject: string;
   duration: number;
-  date: any;
+  date: { toDate?: () => Date } | string | Date;
 }
 
 // 科目ごとの色

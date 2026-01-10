@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { Header } from "@/components/common/Header";
 import { BottomNav } from "@/components/common/BottomNav";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,7 +14,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { db } from "@/lib/firebase";
 import {
@@ -446,14 +445,14 @@ export default function TasksPage() {
               ) : (
                 <div className="flex items-start gap-2">
                   <button
-                    className="text-gray-400 text-sm hover:text-gray-600 transition-colors"
+                    className="text-gray-500 text-sm font-medium hover:text-gray-700 transition-colors whitespace-nowrap"
                     onClick={(e) => {
                       e.stopPropagation();
                       toggleMemoCollapse(task.id);
                     }}
                     title={collapsedMemos.has(task.id) ? "メモを開く" : "メモを閉じる"}
                   >
-                    📝
+                    メモ {collapsedMemos.has(task.id) ? "▶" : "▼"}
                   </button>
                   {!collapsedMemos.has(task.id) && (
                     <div
@@ -466,7 +465,7 @@ export default function TasksPage() {
                       {task.memo ? (
                         <p className="text-sm text-gray-600">{task.memo}</p>
                       ) : (
-                        <p className="text-sm text-gray-400 italic">クリックしてメモを追加...</p>
+                        <p className="text-sm text-gray-400 italic">クリックして追加...</p>
                       )}
                     </div>
                   )}

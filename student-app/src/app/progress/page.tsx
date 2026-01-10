@@ -288,7 +288,6 @@ export default function ProgressPage() {
       const latestExam = latestExams[subject];
       if (latestExam) {
         const percentage = (latestExam.score / latestExam.maxScore) * 100;
-        const targetPercentage = (targetScore / latestExam.maxScore) * 100;
         gaps.push({
           subject,
           current: latestExam.score,
@@ -483,7 +482,7 @@ export default function ProgressPage() {
                             <XAxis dataKey="date" fontSize={12} />
                             <YAxis domain={[0, 100]} fontSize={12} />
                             <Tooltip
-                              formatter={(value, name) => [`${value}点`, "得点"]}
+                              formatter={(value) => [`${value}点`, "得点"]}
                               labelFormatter={(label) => `日付: ${label}`}
                             />
                             <Legend />

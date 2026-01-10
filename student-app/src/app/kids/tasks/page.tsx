@@ -423,13 +423,13 @@ export default function KidsTasksPage() {
               ) : (
                 <div className="flex items-start gap-3">
                   <button
-                    className="text-2xl hover:scale-110 transition-transform"
+                    className="text-lg font-bold text-gray-500 hover:text-gray-700 transition-colors whitespace-nowrap"
                     onClick={(e) => {
                       e.stopPropagation();
                       toggleMemoCollapse(task.id);
                     }}
                   >
-                    📝
+                    メモ {collapsedMemos.has(task.id) ? "▶" : "▼"}
                   </button>
                   {!collapsedMemos.has(task.id) && (
                     <div
@@ -442,7 +442,7 @@ export default function KidsTasksPage() {
                       {task.memo ? (
                         <p className="text-lg text-gray-700">{task.memo}</p>
                       ) : (
-                        <p className="text-lg text-gray-400">タップしてメモをかこう...</p>
+                        <p className="text-lg text-gray-400">タップしてかこう...</p>
                       )}
                     </div>
                   )}

@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { createContext, useContext, useState, ReactNode } from "react";
 import { SessionUser } from "@/types";
 
 interface AuthContextType {
@@ -14,22 +14,24 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const SESSION_KEY = "study-tracker-session";
 
-export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<SessionUser | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    // LocalStorageからセッション復元
-    const stored = localStorage.getItem(SESSION_KEY);
-    if (stored) {
-      try {
-        setUser(JSON.parse(stored));
-      } catch {
-        localStorage.removeItem(SESSION_KEY);
-      }
+// LocalStorageからセッションを取得する関数
+function getStoredUser(): SessionUser | null {
+  if (typeof window === "undefined") return null;
+  const stored = localStorage.getItem(SESSION_KEY);
+  if (stored) {
+    try {
+      return JSON.parse(stored);
+    } catch {
+      localStorage.removeItem(SESSION_KEY);
+      return null;
     }
-    setLoading(false);
-  }, []);
+  }
+  return null;
+}
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<SessionUser | null>(() => getStoredUser());
+  const [loading, setLoading] = useState(false);
 
   const login = (userData: SessionUser) => {
     setUser(userData);
