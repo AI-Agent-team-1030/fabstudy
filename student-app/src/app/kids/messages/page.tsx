@@ -259,7 +259,7 @@ export default function KidsMessagesPage() {
   const formatDate = (timestamp: Timestamp) => {
     if (!timestamp) return "";
     const date = timestamp.toDate();
-    return `${date.getMonth() + 1}/${date.getDate()}`;
+    return `${date.getMonth() + 1}/${date.getDate()} ${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
   };
 
   const getReplyLabel = (replyKey: string) => {
@@ -437,24 +437,21 @@ export default function KidsMessagesPage() {
                         )}
                         {msg.reaction && <span className="text-xl">{msg.reaction}</span>}
                       </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-gray-400">
-                          {formatDate(msg.createdAt)}
-                        </span>
-                        <button
-                          onClick={() => handleDeleteMyMessage(msg.id)}
-                          className="text-gray-400 hover:text-red-500 transition-colors"
-                          title="けす"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                          </svg>
-                        </button>
-                      </div>
                     </div>
                     {msg.message && (
                       <p className="text-sm text-gray-700 mt-2">{msg.message}</p>
                     )}
+                    <div className="flex justify-between items-center mt-2 pt-2 border-t">
+                      <span className="text-xs text-gray-400">
+                        {formatDate(msg.createdAt)}
+                      </span>
+                      <button
+                        onClick={() => handleDeleteMyMessage(msg.id)}
+                        className="text-xs text-gray-400 hover:text-red-500 transition-colors"
+                      >
+                        <ruby>削除<rt>さくじょ</rt></ruby>
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
