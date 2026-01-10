@@ -22,7 +22,8 @@ interface StudyLog {
   id: string;
   subject: string;
   duration: number;
-  date: { toDate?: () => Date } | string | Date;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  date: any;
 }
 
 // 科目ごとの色
