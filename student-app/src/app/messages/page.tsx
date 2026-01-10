@@ -404,7 +404,7 @@ export default function MessagesPage() {
 
             {/* メッセージ入力 */}
             <div>
-              <p className="text-sm font-medium text-gray-700 mb-2">メッセージ（任意）</p>
+              <p className="text-sm font-medium text-gray-700 mb-2">メッセージ</p>
               <Textarea
                 placeholder="先生に伝えたいことを書いてください..."
                 value={messageText}
