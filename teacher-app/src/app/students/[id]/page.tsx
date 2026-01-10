@@ -54,6 +54,7 @@ interface Task {
   parentId: string | null;
   status: string;
   progress: number;
+  memo?: string;
   endDate: Timestamp | null;
   createdAt: Timestamp;
 }
@@ -129,7 +130,22 @@ export default function StudentDetailPage() {
   const [addingTo, setAddingTo] = useState<{ parentId: string | null; level: TaskLevel } | null>(null);
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [newTaskEndDate, setNewTaskEndDate] = useState("");
+  const [newTaskMemo, setNewTaskMemo] = useState("");
+  const [editingMemo, setEditingMemo] = useState<{ taskId: string; memo: string } | null>(null);
+  const [collapsedMemos, setCollapsedMemos] = useState<Set<string>>(new Set());
   const [newWishItem, setNewWishItem] = useState("");
+
+  const toggleMemoCollapse = (taskId: string) => {
+    setCollapsedMemos((prev) => {
+      const next = new Set(prev);
+      if (next.has(taskId)) {
+        next.delete(taskId);
+      } else {
+        next.add(taskId);
+      }
+      return next;
+    });
+  };
 
   useEffect(() => {
     if (!loading && (!user || user.role !== "teacher")) {
@@ -266,6 +282,7 @@ export default function StudentDetailPage() {
         endDate: newTaskEndDate ? Timestamp.fromDate(new Date(newTaskEndDate)) : null,
         status: "pending",
         progress: 0,
+        memo: newTaskMemo || "",
         createdAt: Timestamp.now(),
       });
 
@@ -273,10 +290,25 @@ export default function StudentDetailPage() {
       setAddingTo(null);
       setNewTaskTitle("");
       setNewTaskEndDate("");
+      setNewTaskMemo("");
       loadStudentData();
     } catch (error) {
       console.error("Failed to add task:", error);
       toast.error("追加に失敗しました");
+    }
+  };
+
+  // メモ更新
+  const handleUpdateMemo = async (taskId: string, memo: string) => {
+    try {
+      const taskRef = doc(db, "tasks", taskId);
+      await updateDoc(taskRef, { memo });
+      toast.success("メモを更新しました");
+      setEditingMemo(null);
+      loadStudentData();
+    } catch (error) {
+      console.error("Failed to update memo:", error);
+      toast.error("メモの更新に失敗しました");
     }
   };
 
@@ -537,6 +569,69 @@ export default function StudentDetailPage() {
                 <p className="text-sm text-gray-500 mt-1">進捗: {progress}%</p>
               </>
             )}
+
+            {/* 一言メモ */}
+            <div className="mt-2 pt-2 border-t border-gray-200">
+              {editingMemo?.taskId === task.id ? (
+                <div className="flex gap-2">
+                  <Input
+                    value={editingMemo.memo}
+                    onChange={(e) => setEditingMemo({ ...editingMemo, memo: e.target.value })}
+                    placeholder="一言メモを入力..."
+                    className="flex-1 text-sm"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        handleUpdateMemo(task.id, editingMemo.memo);
+                      } else if (e.key === "Escape") {
+                        setEditingMemo(null);
+                      }
+                    }}
+                    autoFocus
+                  />
+                  <Button
+                    size="sm"
+                    onClick={() => handleUpdateMemo(task.id, editingMemo.memo)}
+                  >
+                    保存
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setEditingMemo(null)}
+                  >
+                    取消
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex items-start gap-2">
+                  <button
+                    className="text-gray-400 text-xs hover:text-gray-600 transition-colors"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleMemoCollapse(task.id);
+                    }}
+                    title={collapsedMemos.has(task.id) ? "メモを開く" : "メモを閉じる"}
+                  >
+                    📝
+                  </button>
+                  {!collapsedMemos.has(task.id) && (
+                    <div
+                      className="flex-1 cursor-pointer hover:bg-gray-100 rounded p-1 -m-1 transition-colors"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setEditingMemo({ taskId: task.id, memo: task.memo || "" });
+                      }}
+                    >
+                      {task.memo ? (
+                        <p className="text-xs text-gray-600">{task.memo}</p>
+                      ) : (
+                        <p className="text-xs text-gray-400 italic">クリックしてメモを追加...</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -1005,6 +1100,14 @@ export default function StudentDetailPage() {
                   type="date"
                   value={newTaskEndDate}
                   onChange={(e) => setNewTaskEndDate(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>一言メモ（任意）</Label>
+                <Input
+                  placeholder="例: 毎日30分は英単語をやる"
+                  value={newTaskMemo}
+                  onChange={(e) => setNewTaskMemo(e.target.value)}
                 />
               </div>
               <div className="flex gap-2 justify-end">

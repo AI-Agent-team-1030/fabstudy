@@ -41,6 +41,7 @@ interface Task {
   endDate: Timestamp | null;
   status: string;
   progress: number;
+  memo?: string;
   createdAt: Timestamp;
 }
 
@@ -71,6 +72,21 @@ export default function KidsTasksPage() {
   });
   const [addingTo, setAddingTo] = useState<{ parentId: string | null; level: TaskLevel } | null>(null);
   const [newTaskTitle, setNewTaskTitle] = useState("");
+  const [newTaskMemo, setNewTaskMemo] = useState("");
+  const [editingMemo, setEditingMemo] = useState<{ taskId: string; memo: string } | null>(null);
+  const [collapsedMemos, setCollapsedMemos] = useState<Set<string>>(new Set());
+
+  const toggleMemoCollapse = (taskId: string) => {
+    setCollapsedMemos((prev) => {
+      const next = new Set(prev);
+      if (next.has(taskId)) {
+        next.delete(taskId);
+      } else {
+        next.add(taskId);
+      }
+      return next;
+    });
+  };
 
   const handleLogout = () => {
     logout();
@@ -160,16 +176,31 @@ export default function KidsTasksPage() {
         endDate: null,
         status: "pending",
         progress: 0,
+        memo: newTaskMemo || "",
         createdAt: Timestamp.now(),
       });
 
       toast.success("追加しました！");
       setAddingTo(null);
       setNewTaskTitle("");
+      setNewTaskMemo("");
       loadTasks();
     } catch (error) {
       console.error("Failed to add task:", error);
       toast.error("追加できませんでした");
+    }
+  };
+
+  const handleUpdateMemo = async (taskId: string, memo: string) => {
+    try {
+      const taskRef = doc(db, "tasks", taskId);
+      await updateDoc(taskRef, { memo });
+      toast.success("メモをほぞんしました！");
+      setEditingMemo(null);
+      loadTasks();
+    } catch (error) {
+      console.error("Failed to update memo:", error);
+      toast.error("ほぞんできませんでした");
     }
   };
 
@@ -352,6 +383,72 @@ export default function KidsTasksPage() {
                 </div>
               </div>
             )}
+
+            {/* ひとことメモ */}
+            <div className="mt-4 pt-4 border-t-2 border-gray-200">
+              {editingMemo?.taskId === task.id ? (
+                <div className="space-y-3">
+                  <Input
+                    value={editingMemo.memo}
+                    onChange={(e) => setEditingMemo({ ...editingMemo, memo: e.target.value })}
+                    placeholder="メモをかこう..."
+                    className="text-lg py-4"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        handleUpdateMemo(task.id, editingMemo.memo);
+                      } else if (e.key === "Escape") {
+                        setEditingMemo(null);
+                      }
+                    }}
+                    autoFocus
+                  />
+                  <div className="flex gap-2 justify-end">
+                    <Button
+                      size="sm"
+                      className="text-base px-4 py-2"
+                      onClick={() => handleUpdateMemo(task.id, editingMemo.memo)}
+                    >
+                      ほぞん
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="text-base px-4 py-2"
+                      onClick={() => setEditingMemo(null)}
+                    >
+                      やめる
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-start gap-3">
+                  <button
+                    className="text-2xl hover:scale-110 transition-transform"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleMemoCollapse(task.id);
+                    }}
+                  >
+                    📝
+                  </button>
+                  {!collapsedMemos.has(task.id) && (
+                    <div
+                      className="flex-1 cursor-pointer hover:bg-gray-100 rounded-lg p-2 -m-2 transition-colors"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setEditingMemo({ taskId: task.id, memo: task.memo || "" });
+                      }}
+                    >
+                      {task.memo ? (
+                        <p className="text-lg text-gray-700">{task.memo}</p>
+                      ) : (
+                        <p className="text-lg text-gray-400">タップしてメモをかこう...</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -470,6 +567,15 @@ export default function KidsTasksPage() {
                   placeholder="れい: さんすうのテストで100てんをとる"
                   value={newTaskTitle}
                   onChange={(e) => setNewTaskTitle(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-lg">ひとことメモ（かかなくてもいいよ）</Label>
+                <Input
+                  className="text-lg py-6"
+                  placeholder="れい: まいにち10もんずつやる"
+                  value={newTaskMemo}
+                  onChange={(e) => setNewTaskMemo(e.target.value)}
                 />
               </div>
               <div className="flex gap-3 justify-end">
