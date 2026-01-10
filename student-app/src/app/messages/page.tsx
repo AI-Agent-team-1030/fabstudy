@@ -18,6 +18,7 @@ import {
   doc,
   updateDoc,
   addDoc,
+  deleteDoc,
   Timestamp,
 } from "firebase/firestore";
 import { toast } from "sonner";
@@ -150,6 +151,19 @@ export default function MessagesPage() {
     }
   };
 
+  const handleDeleteMyMessage = async (messageId: string) => {
+    if (!confirm("このメッセージを削除しますか？")) return;
+
+    try {
+      await deleteDoc(doc(db, "studentMessages", messageId));
+      toast.success("削除しました");
+      loadMyMessages();
+    } catch (error) {
+      console.error("Failed to delete message:", error);
+      toast.error("削除に失敗しました");
+    }
+  };
+
   const loadMessages = async () => {
     if (!user) return;
     try {
@@ -245,9 +259,6 @@ export default function MessagesPage() {
       <main className="max-w-2xl mx-auto px-4 py-6">
         <div className="flex items-center gap-3 mb-6">
           <h2 className="text-2xl font-bold text-gray-800">メッセージ</h2>
-          {unreadCount > 0 && (
-            <Badge variant="destructive">{unreadCount}件の未読</Badge>
-          )}
         </div>
 
         <Card>
@@ -432,9 +443,20 @@ export default function MessagesPage() {
                         )}
                         {msg.reaction && <span className="text-xl">{msg.reaction}</span>}
                       </div>
-                      <span className="text-xs text-gray-400">
-                        {formatDate(msg.createdAt)}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-gray-400">
+                          {formatDate(msg.createdAt)}
+                        </span>
+                        <button
+                          onClick={() => handleDeleteMyMessage(msg.id)}
+                          className="text-gray-400 hover:text-red-500 transition-colors"
+                          title="削除"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
                     </div>
                     {msg.message && (
                       <p className="text-sm text-gray-700 mt-2">{msg.message}</p>

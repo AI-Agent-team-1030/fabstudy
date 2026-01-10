@@ -15,6 +15,7 @@ import {
   doc,
   updateDoc,
   addDoc,
+  deleteDoc,
   Timestamp,
   or,
 } from "firebase/firestore";
@@ -154,6 +155,19 @@ export default function KidsMessagesPage() {
       toast.error("おくれませんでした");
     } finally {
       setSendingMessage(false);
+    }
+  };
+
+  const handleDeleteMyMessage = async (messageId: string) => {
+    if (!confirm("このメッセージをけしますか？")) return;
+
+    try {
+      await deleteDoc(doc(db, "studentMessages", messageId));
+      toast.success("けしました");
+      loadMyMessages();
+    } catch (error) {
+      console.error("Failed to delete message:", error);
+      toast.error("けせませんでした");
     }
   };
 
@@ -423,9 +437,20 @@ export default function KidsMessagesPage() {
                         )}
                         {msg.reaction && <span className="text-xl">{msg.reaction}</span>}
                       </div>
-                      <span className="text-xs text-gray-400">
-                        {formatDate(msg.createdAt)}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-gray-400">
+                          {formatDate(msg.createdAt)}
+                        </span>
+                        <button
+                          onClick={() => handleDeleteMyMessage(msg.id)}
+                          className="text-gray-400 hover:text-red-500 transition-colors"
+                          title="けす"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
                     </div>
                     {msg.message && (
                       <p className="text-sm text-gray-700 mt-2">{msg.message}</p>
